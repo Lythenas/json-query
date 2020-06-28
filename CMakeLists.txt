@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.10)
+
+project(jsonquery VERSION 0.1)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include_directories(${PROJECT_SOURCE_DIR}/src)
+
+find_package(BISON 3.6.3)
+
+BISON_TARGET(SelectorParser src/selector_parser.yy src/selector_parser.cpp)
+
+add_executable(jsonquery
+    src/jsonquery.cpp
+    ${BISON_SelectorParser_OUTPUTS})
+
+

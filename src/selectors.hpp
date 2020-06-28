@@ -1,6 +1,19 @@
+#include "selector_parser.hpp"
 
-class Selector {
-};
+// class Selector {
+// };
+
+Selector parse_selector(std::string s) {
+    driver d;
+    yy::selector_parser parse(d);
+    if (!parse()) {
+        d.result.print();
+    } else {
+        std::cout << "Error\n";
+    }
+    return d.result;
+}
+
 
 // SELECTORS:
 //

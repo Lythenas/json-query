@@ -77,11 +77,6 @@ std::string read_input(const std::optional<std::string> file) {
     }
 }
 
-Selector parse_selector(std::string s) {
-    // TODO
-    return Selector();
-}
-
 int main(int argc, char *argv[]) {
     const auto args = parse_arguments(argc, argv);
 
