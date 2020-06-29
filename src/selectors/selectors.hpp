@@ -1,41 +1,7 @@
-#include "selector_type.hpp"
-#include "driver.hpp"
+#include "selector_types.hpp"
 #include <sstream>
 
-// class driver {
-//     public:
-//         int parse(const std::string& f) {
-//             file = f;
-//             location.initialize(&file);
-//             scan_begin();
-//             yy::parser parse(*this);
-//             parse.set_debug_level(trace_parsing);
-//             int res = parse();
-//             scan_end();
-//             return res;
-//         }
-//
-//         std::string file;
-//         bool trace_parsing = false;
-//
-//         void scan_begin();
-//         void scan_end();
-//         bool trace_scanning = false;
-//         yy::location location;
-//
-// };
-
-Selector parse_selector(std::string s) {
-    SelectorDriver driver(s);
-    RootSelector root = driver.parse();
-
-    // if (!parse()) {
-    //    root.print();
-    // } else {
-    //     std::cout << "Error\n";
-    // }
-    return root;
-}
+#include "parser.cpp"
 
 
 // SELECTORS:

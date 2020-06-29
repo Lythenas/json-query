@@ -1,0 +1,7 @@
+{
+    "name": "Matthias",
+    "age": 23,
+    "degree": {
+        "title": "Ba.Sc. Software Engineering"
+    }
+}

@@ -101,9 +101,12 @@ int main(int argc, char *argv[]) {
         std::cerr << "content:" << std::endl << content;
         std::cerr << "=== DEBUG END ===" << std::endl;
 
-        Selector selector = parse_selector(args.selector);
+        Selector* selector = parse_selector(args.selector.begin(), args.selector.end());
+        selector->print();
     } catch (const InputFileException &e) {
         std::cerr << e.what() << std::endl;
+    } catch (const FailedToParseSelectorException &e) {
+        std::cerr << "Failed to parse selector: " << e.what() << std::endl;
     }
 
     return 0;
