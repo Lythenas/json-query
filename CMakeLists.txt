@@ -12,11 +12,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 find_package(BISON 3.6.3)
+find_package(FLEX)
 
-BISON_TARGET(SelectorParser src/selector_parser.yy src/selector_parser.cpp)
+BISON_TARGET(SelectorParser src/selectors/selector_parser.yy src/selectors/selector_parser.cpp)
+FLEX_TARGET(SelectorScanner src/selectors/scanner.ll src/selectors/scanner.cpp)
 
 add_executable(jsonquery
     src/jsonquery.cpp
-    ${BISON_SelectorParser_OUTPUTS})
+    ${BISON_SelectorParser_OUTPUTS}
+    ${FLEX_SelectorScanner_OUTPUTS})
 
 

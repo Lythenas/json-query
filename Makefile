@@ -170,32 +170,59 @@ src/jsonquery.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/jsonquery.cpp.s
 .PHONY : src/jsonquery.cpp.s
 
-src/selector_parser.o: src/selector_parser.cpp.o
+src/selectors/scanner.o: src/selectors/scanner.cpp.o
 
-.PHONY : src/selector_parser.o
+.PHONY : src/selectors/scanner.o
 
 # target to build an object file
-src/selector_parser.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/selector_parser.cpp.o
-.PHONY : src/selector_parser.cpp.o
+src/selectors/scanner.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/selectors/scanner.cpp.o
+.PHONY : src/selectors/scanner.cpp.o
 
-src/selector_parser.i: src/selector_parser.cpp.i
+src/selectors/scanner.i: src/selectors/scanner.cpp.i
 
-.PHONY : src/selector_parser.i
+.PHONY : src/selectors/scanner.i
 
 # target to preprocess a source file
-src/selector_parser.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/selector_parser.cpp.i
-.PHONY : src/selector_parser.cpp.i
+src/selectors/scanner.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/selectors/scanner.cpp.i
+.PHONY : src/selectors/scanner.cpp.i
 
-src/selector_parser.s: src/selector_parser.cpp.s
+src/selectors/scanner.s: src/selectors/scanner.cpp.s
 
-.PHONY : src/selector_parser.s
+.PHONY : src/selectors/scanner.s
 
 # target to generate assembly for a file
-src/selector_parser.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/selector_parser.cpp.s
-.PHONY : src/selector_parser.cpp.s
+src/selectors/scanner.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/selectors/scanner.cpp.s
+.PHONY : src/selectors/scanner.cpp.s
+
+src/selectors/selector_parser.o: src/selectors/selector_parser.cpp.o
+
+.PHONY : src/selectors/selector_parser.o
+
+# target to build an object file
+src/selectors/selector_parser.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/selectors/selector_parser.cpp.o
+.PHONY : src/selectors/selector_parser.cpp.o
+
+src/selectors/selector_parser.i: src/selectors/selector_parser.cpp.i
+
+.PHONY : src/selectors/selector_parser.i
+
+# target to preprocess a source file
+src/selectors/selector_parser.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/selectors/selector_parser.cpp.i
+.PHONY : src/selectors/selector_parser.cpp.i
+
+src/selectors/selector_parser.s: src/selectors/selector_parser.cpp.s
+
+.PHONY : src/selectors/selector_parser.s
+
+# target to generate assembly for a file
+src/selectors/selector_parser.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/src/selectors/selector_parser.cpp.s
+.PHONY : src/selectors/selector_parser.cpp.s
 
 # Help Target
 help:
@@ -209,9 +236,12 @@ help:
 	@echo "... src/jsonquery.o"
 	@echo "... src/jsonquery.i"
 	@echo "... src/jsonquery.s"
-	@echo "... src/selector_parser.o"
-	@echo "... src/selector_parser.i"
-	@echo "... src/selector_parser.s"
+	@echo "... src/selectors/scanner.o"
+	@echo "... src/selectors/scanner.i"
+	@echo "... src/selectors/scanner.s"
+	@echo "... src/selectors/selector_parser.o"
+	@echo "... src/selectors/selector_parser.i"
+	@echo "... src/selectors/selector_parser.s"
 .PHONY : help
 
 

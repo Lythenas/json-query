@@ -5,7 +5,7 @@
 #include <optional>
 #include <string>
 
-#include "selectors.hpp"
+#include "selectors/selectors.hpp"
 #include "errors.hpp"
 
 struct Arguments {
