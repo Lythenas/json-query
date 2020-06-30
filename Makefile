@@ -76,40 +76,6 @@ CMAKE_BINARY_DIR = /home/ms/Repos/json-query
 #=============================================================================
 # Targets provided globally by CMake.
 
-# Special rule for the target install/strip
-install/strip: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip
-
-# Special rule for the target install/strip
-install/strip/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
-	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
-.PHONY : install/strip/fast
-
-# Special rule for the target install
-install: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/bin/cmake -P cmake_install.cmake
-.PHONY : install
-
-# Special rule for the target install
-install/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
-	/usr/bin/cmake -P cmake_install.cmake
-.PHONY : install/fast
-
-# Special rule for the target list_install_components
-list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
-.PHONY : list_install_components
-
-# Special rule for the target list_install_components
-list_install_components/fast: list_install_components
-
-.PHONY : list_install_components/fast
-
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
@@ -131,18 +97,6 @@ edit_cache:
 edit_cache/fast: edit_cache
 
 .PHONY : edit_cache/fast
-
-# Special rule for the target install/local
-install/local: preinstall
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-.PHONY : install/local
-
-# Special rule for the target install/local
-install/local/fast: preinstall/fast
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
-	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
-.PHONY : install/local/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -177,19 +131,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named jsonquery_bench
-
-# Build rule for target.
-jsonquery_bench: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 jsonquery_bench
-.PHONY : jsonquery_bench
-
-# fast build rule for target.
-jsonquery_bench/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery_bench.dir/build.make CMakeFiles/jsonquery_bench.dir/build
-.PHONY : jsonquery_bench/fast
-
-#=============================================================================
 # Target rules for targets named jsonquery
 
 # Build rule for target.
@@ -201,59 +142,6 @@ jsonquery: cmake_check_build_system
 jsonquery/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery.dir/build.make CMakeFiles/jsonquery.dir/build
 .PHONY : jsonquery/fast
-
-#=============================================================================
-# Target rules for targets named benchmark_main
-
-# Build rule for target.
-benchmark_main: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 benchmark_main
-.PHONY : benchmark_main
-
-# fast build rule for target.
-benchmark_main/fast:
-	$(MAKE) $(MAKESILENT) -f _deps/googlebenchmark-build/src/CMakeFiles/benchmark_main.dir/build.make _deps/googlebenchmark-build/src/CMakeFiles/benchmark_main.dir/build
-.PHONY : benchmark_main/fast
-
-#=============================================================================
-# Target rules for targets named benchmark
-
-# Build rule for target.
-benchmark: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 benchmark
-.PHONY : benchmark
-
-# fast build rule for target.
-benchmark/fast:
-	$(MAKE) $(MAKESILENT) -f _deps/googlebenchmark-build/src/CMakeFiles/benchmark.dir/build.make _deps/googlebenchmark-build/src/CMakeFiles/benchmark.dir/build
-.PHONY : benchmark/fast
-
-bench/bench.o: bench/bench.cpp.o
-
-.PHONY : bench/bench.o
-
-# target to build an object file
-bench/bench.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery_bench.dir/build.make CMakeFiles/jsonquery_bench.dir/bench/bench.cpp.o
-.PHONY : bench/bench.cpp.o
-
-bench/bench.i: bench/bench.cpp.i
-
-.PHONY : bench/bench.i
-
-# target to preprocess a source file
-bench/bench.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery_bench.dir/build.make CMakeFiles/jsonquery_bench.dir/bench/bench.cpp.i
-.PHONY : bench/bench.cpp.i
-
-bench/bench.s: bench/bench.cpp.s
-
-.PHONY : bench/bench.s
-
-# target to generate assembly for a file
-bench/bench.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/jsonquery_bench.dir/build.make CMakeFiles/jsonquery_bench.dir/bench/bench.cpp.s
-.PHONY : bench/bench.cpp.s
 
 src/jsonquery.o: src/jsonquery.cpp.o
 
@@ -289,18 +177,8 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
-	@echo "... install"
-	@echo "... install/local"
-	@echo "... install/strip"
-	@echo "... list_install_components"
 	@echo "... rebuild_cache"
-	@echo "... benchmark"
-	@echo "... benchmark_main"
 	@echo "... jsonquery"
-	@echo "... jsonquery_bench"
-	@echo "... bench/bench.o"
-	@echo "... bench/bench.i"
-	@echo "... bench/bench.s"
 	@echo "... src/jsonquery.o"
 	@echo "... src/jsonquery.i"
 	@echo "... src/jsonquery.s"

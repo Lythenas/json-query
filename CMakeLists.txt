@@ -21,16 +21,16 @@ add_executable(jsonquery
 
 #### BENCHMARKS ####
 
-include(FetchContent)
-set(BENCHMARK_ENABLE_TESTING OFF)
-FetchContent_Declare(googlebenchmark
-    GIT_REPOSITORY https://github.com/google/benchmark)
-FetchContent_MakeAvailable(googlebenchmark)
-
-
-# the benchmark suite only works if goole benchmark is installed
-# https://github.com/google/benchmark
-add_executable(jsonquery_bench
-    bench/bench.cpp)
-
-target_link_libraries(jsonquery_bench benchmark::benchmark)
+# include(FetchContent)
+# set(BENCHMARK_ENABLE_TESTING OFF)
+# FetchContent_Declare(googlebenchmark
+#     GIT_REPOSITORY https://github.com/google/benchmark)
+# FetchContent_MakeAvailable(googlebenchmark)
+#
+#
+# # the benchmark suite only works if goole benchmark is installed
+# # https://github.com/google/benchmark
+# add_executable(jsonquery_bench
+#     bench/bench.cpp)
+#
+# target_link_libraries(jsonquery_bench benchmark::benchmark)
