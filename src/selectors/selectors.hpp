@@ -3,7 +3,6 @@
 
 #include "parser.cpp"
 
-
 // SELECTORS:
 //
 // root .
@@ -20,8 +19,8 @@
 // multi-selection "one"[2:0],"two","three"
 // filter "something"|"else" (will filter an array "something": [...])
 // truncate !
-//   - stops processing and returns a simple value (for objects and array an empty object or array)
+//   - stops processing and returns a simple value (for objects and array an
+//   empty object or array)
 //
 // This isn't really a selector but transforms the output:
 // flatten arrays .. (prefix instead of postfix)
-

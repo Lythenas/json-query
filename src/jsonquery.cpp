@@ -5,8 +5,8 @@
 #include <optional>
 #include <string>
 
-#include "selectors/selectors.hpp"
 #include "errors.hpp"
+#include "selectors/selectors.hpp"
 
 struct Arguments {
     bool help = false;
@@ -101,7 +101,8 @@ int main(int argc, char *argv[]) {
         std::cerr << "content:" << std::endl << content;
         std::cerr << "=== DEBUG END ===" << std::endl;
 
-        Selector* selector = parse_selector(args.selector.begin(), args.selector.end());
+        Selector *selector =
+            parse_selector(args.selector.begin(), args.selector.end());
         selector->print();
     } catch (const InputFileException &e) {
         std::cerr << e.what() << std::endl;
