@@ -1,3 +1,7 @@
+#ifndef NDEBUG
+    #undef BOOST_SPIRIT_DEBUG
+#endif
+
 #include <boost/phoenix.hpp>
 #include <boost/spirit/home/qi/nonterminal/debug_handler.hpp>
 #include <boost/spirit/include/qi.hpp>
@@ -84,14 +88,13 @@ Selectors parse_selectors(Iterator first, Iterator last) {
         raw_root_item[_val = construct<RootSelector>(_1)];
     root_item.name("root_item");
 
-    qi::debug(key);
-    qi::debug(root_item);
-
     rule<Iterator, Selectors(), ascii::space_type> root =
         (root_item % ',')[_val = construct<Selectors>(_1)];
     root.name("root");
 
-    qi::debug(root);
+    BOOST_SPIRIT_DEBUG_NODE(key);
+    BOOST_SPIRIT_DEBUG_NODE(root_item);
+    BOOST_SPIRIT_DEBUG_NODE(root);
 
     Selectors selectors;
     if (!qi::phrase_parse(first, last, root, ascii::space, selectors)) {
