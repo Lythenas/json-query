@@ -42,6 +42,10 @@ class KeySelector : public Selector {
         std::cout << "KeySelector(\"" << key << "\")";
     }
 
+    const std::string& get() const {
+        return key;
+    }
+
     friend std::ostream& operator<<(std::ostream& o, const KeySelector& self) {
         return o << "KeySelector(" << self.key << ")";
     }
@@ -238,6 +242,11 @@ struct SelectorNode {
     SelectorNode(TruncateSelector inner): inner(inner) {
     }
 
+    template<typename T>
+    const T& as() const {
+        return boost::get<T>(inner);
+    }
+
     boost::variant<KeySelector, IndexSelector, RangeSelector, PropertySelector, FilterSelector, AnyRootSelector, TruncateSelector> inner;
 
     void print() const {
@@ -291,6 +300,10 @@ class RootSelector {
             std::cout << ",";
         }
         std::cout << "}\n";
+    }
+
+    const std::vector<SelectorNode>& get() const {
+        return inner;
     }
 
     friend std::ostream& operator<<(std::ostream& o, const RootSelector& self) {
