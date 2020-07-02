@@ -28,6 +28,10 @@ class AnyRootSelector : public Selector {
 
     virtual void print() const override { std::cout << "AnyRootSelector"; }
 
+    friend std::ostream& operator<<(std::ostream& o, const AnyRootSelector&) {
+        return o << "AnyRootSelector";
+    }
+
     virtual Json *run(Json *json) const override { return json; }
 };
 
@@ -68,6 +72,10 @@ class IndexSelector : public Selector {
     IndexSelector(int index) : index(index) {}
     ~IndexSelector() = default;
 
+    int get() const {
+        return index;
+    }
+
     virtual void print() const noexcept override {
         std::cout << "IndexSelector(" << index << ")";
     }
@@ -96,6 +104,14 @@ class RangeSelector : public Selector {
     RangeSelector(boost::optional<int> start, boost::optional<int> end)
         : start(start), end(end) {}
     ~RangeSelector() = default;
+
+    const boost::optional<int>& get_start() const {
+        return start;
+    }
+
+    const boost::optional<int>& get_end() const {
+        return end;
+    }
 
     virtual void print() const noexcept override {
         std::cout << "RangeSelector("
@@ -134,6 +150,10 @@ class PropertySelector : public Selector {
     //     }
     // }
 
+    const std::vector<KeySelector>& get_keys() const {
+        return keys;
+    }
+
     virtual void print() const noexcept override {
         std::cout << "PropertySelector{";
         for (auto &x : keys) {
@@ -169,6 +189,10 @@ class FilterSelector : public Selector {
     FilterSelector(KeySelector filter) : filter(filter) {}
     ~FilterSelector() = default;
     // virtual ~FilterSelector() noexcept { delete filter; }
+
+    const KeySelector& get() const {
+        return filter;
+    }
 
     virtual void print() const noexcept override {
         std::cout << "FilterSelector(";
@@ -264,7 +288,6 @@ class SelectorNode {
         return o;
     }
 
-  private:
     boost::variant<KeySelector, IndexSelector, RangeSelector, PropertySelector, FilterSelector, AnyRootSelector, TruncateSelector> inner;
 };
 
