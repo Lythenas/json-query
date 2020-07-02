@@ -5,7 +5,6 @@
 #include <boost/variant.hpp>
 #include <iostream>
 #include <vector>
-#include <variant>
 
 class Json {};
 
@@ -88,6 +87,12 @@ class IndexSelector : public Selector {
 class RangeSelector : public Selector {
   public:
     RangeSelector() = default;
+    RangeSelector(boost::optional<RangeSelector> r) {
+        if (r) {
+            start = std::move(r->start);
+            end = std::move(r->end);
+        }
+    }
     RangeSelector(boost::optional<int> start, boost::optional<int> end)
         : start(start), end(end) {}
     ~RangeSelector() = default;
@@ -215,17 +220,8 @@ struct print_visitor : public boost::static_visitor<> {
     }
 };
 
-struct SelectorNode {
-    // enum{ANY,KEY,INDEX,RANGE,PROPERTY,FILTER,TRUNCATE};
-    // union {
-    //     AnyRootSelector any;
-    //     KeySelector key;
-    //     IndexSelector index;
-    //     RangeSelector range;
-    //     PropertySelector property;
-    //     FilterSelector filter;
-    //     TruncateSelector truncate;
-    // };
+class SelectorNode {
+  public:
     SelectorNode() = default;
     SelectorNode(AnyRootSelector inner): inner(inner) {
     }
@@ -247,26 +243,8 @@ struct SelectorNode {
         return boost::get<T>(inner);
     }
 
-    boost::variant<KeySelector, IndexSelector, RangeSelector, PropertySelector, FilterSelector, AnyRootSelector, TruncateSelector> inner;
-
     void print() const {
-        // std::cout << inner.which() << " x ";
         boost::apply_visitor(print_visitor(), inner);
-        // if (std::holds_alternative<AnyRootSelector>(inner)) {
-        //     std::get<AnyRootSelector>(inner).print();
-        // } else if (std::holds_alternative<KeySelector>(inner)) {
-        //     std::get<KeySelector>(inner).print();
-        // } else if (std::holds_alternative<IndexSelector>(inner)) {
-        //     std::get<IndexSelector>(inner).print();
-        // } else if (std::holds_alternative<RangeSelector>(inner)) {
-        //     std::get<RangeSelector>(inner).print();
-        // } else if (std::holds_alternative<PropertySelector>(inner)) {
-        //     std::get<PropertySelector>(inner).print();
-        // } else if (std::holds_alternative<FilterSelector>(inner)) {
-        //     std::get<FilterSelector>(inner).print();
-        // } else if (std::holds_alternative<TruncateSelector>(inner)) {
-        //     std::get<TruncateSelector>(inner).print();
-        // }
     }
 
     friend std::ostream& operator<<(std::ostream& o, const SelectorNode& self) {
@@ -285,6 +263,9 @@ struct SelectorNode {
         }
         return o;
     }
+
+  private:
+    boost::variant<KeySelector, IndexSelector, RangeSelector, PropertySelector, FilterSelector, AnyRootSelector, TruncateSelector> inner;
 };
 
 class RootSelector {

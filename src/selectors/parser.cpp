@@ -7,9 +7,8 @@
 #include <boost/spirit/include/qi.hpp>
 #include <iterator>
 #include <memory>
-#include <variant>
 
-#include "selector_types.hpp"
+#include "types.hpp"
 
 namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
@@ -21,90 +20,86 @@ class FailedToParseSelectorException : public std::exception {
     }
 };
 
+template<typename Iterator>
+struct selectors_grammar : qi::grammar<Iterator, Selectors(), ascii::space_type> {
+    selectors_grammar() : selectors_grammar::base_type(root) {
+        using boost::phoenix::construct;
+        using boost::phoenix::new_;
+        using boost::phoenix::val;
+        using qi::_1;
+        using qi::_2;
+        using qi::_val;
+        using qi::rule;
+
+        root = (root_item % ',')[_val = construct<Selectors>(_1)];
+
+        root_item = raw_root_item[_val = construct<RootSelector>(_1)];
+        raw_root_item = basic >> *(compound);
+
+        compound = -qi::lit('.') >> (basic | filter);
+        basic = (key | index | range | property)[bind(&SelectorNode::inner, _val) = _1];
+
+        filter = raw_filter[_val = construct<SelectorNode>(_1)];
+        raw_filter = ('|' >> key)[_val = construct<FilterSelector>(_1)];
+        truncate = qi::lit('!')[_val = construct<TruncateSelector>()];
+        property = ('{' >> (key % ',') >> '}')[_val = construct<PropertySelector>(_1)];
+        inner_range = (-qi::int_ >> ':' >> -qi::int_)[_val = construct<RangeSelector>(_1, _2)];
+        range = ('[' >> -inner_range >> ']')[_val = construct<RangeSelector>(_1)];
+        index = ('[' >> qi::int_ >> ']')[_val = construct<IndexSelector>(_1)];
+        any_root = qi::lit('.')[_val = construct<AnyRootSelector>()];
+        key = quoted_string[_val = construct<KeySelector>(_1)];
+
+        quoted_string = qi::no_skip[qi::lexeme['"' >> +(ascii::char_ - '"') >> '"']];
+
+        // set names and add debugging (ifndef NDEBUG)
+        BOOST_SPIRIT_DEBUG_NODE(root);
+
+        BOOST_SPIRIT_DEBUG_NODE(root_item);
+        BOOST_SPIRIT_DEBUG_NODE(raw_root_item);
+
+        BOOST_SPIRIT_DEBUG_NODE(compound);
+        BOOST_SPIRIT_DEBUG_NODE(basic);
+
+        BOOST_SPIRIT_DEBUG_NODE(filter);
+        BOOST_SPIRIT_DEBUG_NODE(raw_filter);
+        BOOST_SPIRIT_DEBUG_NODE(truncate);
+        BOOST_SPIRIT_DEBUG_NODE(property);
+        BOOST_SPIRIT_DEBUG_NODE(inner_range);
+        BOOST_SPIRIT_DEBUG_NODE(range);
+        BOOST_SPIRIT_DEBUG_NODE(index);
+        BOOST_SPIRIT_DEBUG_NODE(any_root);
+        BOOST_SPIRIT_DEBUG_NODE(key);
+        BOOST_SPIRIT_DEBUG_NODE(quoted_string);
+    }
+
+    qi::rule<Iterator, Selectors(), ascii::space_type> root;
+    qi::rule<Iterator, RootSelector(), ascii::space_type> root_item;
+    qi::rule<Iterator, std::vector<SelectorNode>(), ascii::space_type> raw_root_item;
+
+    qi::rule<Iterator, SelectorNode(), ascii::space_type> compound;
+    qi::rule<Iterator, SelectorNode(), ascii::space_type> basic;
+
+    qi::rule<Iterator, SelectorNode(), ascii::space_type> filter;
+    qi::rule<Iterator, FilterSelector(), ascii::space_type> raw_filter;
+    qi::rule<Iterator, TruncateSelector(), ascii::space_type> truncate;
+    qi::rule<Iterator, PropertySelector(), ascii::space_type> property;
+    qi::rule<Iterator, RangeSelector(), ascii::space_type> inner_range;
+    qi::rule<Iterator, RangeSelector(), ascii::space_type> range;
+    qi::rule<Iterator, IndexSelector(), ascii::space_type> index;
+    qi::rule<Iterator, AnyRootSelector()> any_root;
+    qi::rule<Iterator, KeySelector()> key;
+
+    qi::rule<Iterator, std::string()> quoted_string;
+};
+
 template <typename Iterator>
 Selectors parse_selectors(Iterator first, Iterator last) {
-    using boost::phoenix::construct;
-    using boost::phoenix::new_;
-    using boost::phoenix::val;
-    using qi::_1;
-    using qi::_2;
-    using qi::_val;
-    using qi::rule;
-
-    rule<Iterator, std::string()> quoted_string =
-        qi::no_skip[qi::lexeme['"' >> +(ascii::char_ - '"') >> '"']];
-
-    // base selectors
-    rule<Iterator, KeySelector()> key =
-        quoted_string[_val = construct<KeySelector>(_1)];
-    key.name("key");
-
-    rule<Iterator, AnyRootSelector(), ascii::space_type> any_root =
-        qi::lit('.')[_val = construct<AnyRootSelector>()];
-    any_root.name("any_root");
-
-    rule<Iterator, IndexSelector(), ascii::space_type> index_sel =
-        ('[' >> qi::int_ >> ']')[_val = construct<IndexSelector>(_1)];
-    index_sel.name("index");
-
-    rule<Iterator, RangeSelector(), ascii::space_type> range_sel =
-        ('[' >> -qi::int_ >> ':' >> -qi::int_ >>
-         ']')[_val = construct<RangeSelector>(_1, _2)];
-    range_sel.name("range");
-
-    rule<Iterator, RangeSelector(), ascii::space_type> empty_range_sel =
-        (qi::lit('[') >> ']')[_val = construct<RangeSelector>()];
-    empty_range_sel.name("empty_range");
-
-    rule<Iterator, PropertySelector(), ascii::space_type> property_sel =
-        ('{' >> (key % ',') >> '}')[_val = construct<PropertySelector>(_1)];
-    property_sel.name("property");
-
-    rule<Iterator, TruncateSelector(), ascii::space_type> truncate_sel =
-        qi::lit('!')[_val = construct<TruncateSelector>()];
-    truncate_sel.name("truncate");
-
-    // combined selectors
-    rule<Iterator, FilterSelector(), ascii::space_type> raw_filter_sel =
-        ('|' >> key)[_val = construct<FilterSelector>(_1)];
-    raw_filter_sel.name("raw_filter");
-    rule<Iterator, SelectorNode(), ascii::space_type> filter_sel =
-        raw_filter_sel[_val = construct<SelectorNode>(_1)];
-    filter_sel.name("filter");
-
-    rule<Iterator, SelectorNode(), ascii::space_type> basic_sel =
-        (key | index_sel | range_sel | empty_range_sel | property_sel)[bind(&SelectorNode::inner, _val) = _1];
-    basic_sel.name("basic");
-
-    rule<Iterator, SelectorNode(), ascii::space_type> compound_sel =
-        -qi::lit('.') >> (basic_sel | filter_sel);
-    compound_sel.name("compound");
-
-    rule<Iterator, std::vector<SelectorNode>(), ascii::space_type> raw_root_item =
-        basic_sel >> *(compound_sel);
-    raw_root_item.name("raw_root_item");
-
-    rule<Iterator, RootSelector(), ascii::space_type> root_item =
-        raw_root_item[_val = construct<RootSelector>(_1)];
-    root_item.name("root_item");
-
-    rule<Iterator, Selectors(), ascii::space_type> root =
-        (root_item % ',')[_val = construct<Selectors>(_1)];
-    root.name("root");
-
-    BOOST_SPIRIT_DEBUG_NODE(key);
-    BOOST_SPIRIT_DEBUG_NODE(root_item);
-    BOOST_SPIRIT_DEBUG_NODE(root);
-
     Selectors selectors;
-    if (!qi::phrase_parse(first, last, root, ascii::space, selectors)) {
+    if (!qi::phrase_parse(first, last, selectors_grammar<Iterator>(), ascii::space, selectors)) {
         throw FailedToParseSelectorException();
     }
 
-    // std::cerr << "res: " << res << "pos: " << std::distance(first, last) <<
-    // "\n";
-
-    // fail we did not get a fill match
+    // fail if we did not get a full match
     if (first != last) {
         throw FailedToParseSelectorException();
     }
