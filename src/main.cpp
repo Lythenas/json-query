@@ -7,6 +7,7 @@
 
 #include "errors.hpp"
 #include "selectors/selectors.hpp"
+#include "json/json.hpp"
 
 struct Arguments {
     bool help = false;

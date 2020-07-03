@@ -1,3 +1,6 @@
+#ifndef JSON_QUERY_SELECTOR_PARSER_HPP
+#define JSON_QUERY_SELECTOR_PARSER_HPP
+
 #ifndef NDEBUG
     #undef BOOST_SPIRIT_DEBUG
 #endif
@@ -129,5 +132,7 @@ Selectors parse_selectors(Iterator first, Iterator last) {
 //   - stops processing and returns a simple value (for objects and array an
 //   empty object or array)
 //
-// This isn't really a selector but transforms the output:
+// This isn't really a selector but transforms the output (NOT IMPLEMENTED):
 // flatten arrays .. (prefix instead of postfix)
+
+#endif

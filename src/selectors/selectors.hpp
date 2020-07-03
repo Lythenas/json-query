@@ -1,5 +1,5 @@
 #include "types.hpp"
-#include "parser.cpp"
+#include "parser.hpp"
 
 // SELECTORS:
 //

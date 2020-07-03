@@ -4,9 +4,10 @@
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 #include <iostream>
+#include <utility>
 #include <vector>
 
-class Json {};
+#include "../json/types.hpp"
 
 /**
  *  Selectors are linear (except for the selectors in RootSelector).
@@ -28,7 +29,7 @@ class AnyRootSelector : public Selector {
 
     virtual void print() const override { std::cout << "AnyRootSelector"; }
 
-    friend std::ostream& operator<<(std::ostream& o, const AnyRootSelector&) {
+    friend std::ostream& operator<<(std::ostream& o, const AnyRootSelector& /*unused*/) {
         return o << "AnyRootSelector";
     }
 
@@ -38,7 +39,7 @@ class AnyRootSelector : public Selector {
 class KeySelector : public Selector {
   public:
     KeySelector() = default;
-    KeySelector(std::string key) : key(key) {}
+    KeySelector(std::string key) : key(std::move(key)) {}
     ~KeySelector() = default;
 
     virtual void print() const noexcept override {
@@ -97,8 +98,8 @@ class RangeSelector : public Selector {
     RangeSelector() = default;
     RangeSelector(boost::optional<RangeSelector> r) {
         if (r) {
-            start = std::move(r->start);
-            end = std::move(r->end);
+            start = r->start;
+            end = r->end;
         }
     }
     RangeSelector(boost::optional<int> start, boost::optional<int> end)
@@ -142,7 +143,7 @@ class RangeSelector : public Selector {
 class PropertySelector : public Selector {
   public:
     PropertySelector() = default;
-    PropertySelector(std::vector<KeySelector> keys) : keys(keys) {}
+    PropertySelector(std::vector<KeySelector> keys) : keys(std::move(keys)) {}
     ~PropertySelector() = default;
     // virtual ~PropertySelector() noexcept {
     //     for (auto &x : keys) {
@@ -156,7 +157,7 @@ class PropertySelector : public Selector {
 
     virtual void print() const noexcept override {
         std::cout << "PropertySelector{";
-        for (auto &x : keys) {
+        for (const auto &x : keys) {
             x.print();
             std::cout << ",";
         }
@@ -165,7 +166,7 @@ class PropertySelector : public Selector {
 
     friend std::ostream& operator<<(std::ostream& o, const PropertySelector& self) {
         o << "PropertySelector(";
-        for (auto &x: self.keys) {
+        for (const auto &x: self.keys) {
             o << x << ",";
         }
         return o << ")";
@@ -186,7 +187,7 @@ class PropertySelector : public Selector {
 class FilterSelector : public Selector {
   public:
     FilterSelector() = default;
-    FilterSelector(KeySelector filter) : filter(filter) {}
+    FilterSelector(const KeySelector& filter) : filter(filter) {}
     ~FilterSelector() = default;
     // virtual ~FilterSelector() noexcept { delete filter; }
 
@@ -225,7 +226,7 @@ class TruncateSelector : public Selector {
         std::cout << "TruncateSelector";
     }
 
-    friend std::ostream& operator<<(std::ostream& o, const TruncateSelector&) {
+    friend std::ostream& operator<<(std::ostream& o, const TruncateSelector& /*unused*/) {
         return o << "TruncateSelector";
     }
 
@@ -294,7 +295,7 @@ class SelectorNode {
 class RootSelector {
   public:
     RootSelector() = default;
-    RootSelector(std::vector<SelectorNode> inner): inner(inner) {
+    RootSelector(std::vector<SelectorNode> inner): inner(std::move(inner)) {
     }
 
     void print() const {
@@ -340,7 +341,7 @@ class RootSelector {
 class Selectors {
     public:
         Selectors() = default;
-        Selectors(std::vector<RootSelector> selectors): selectors(selectors) {
+        Selectors(std::vector<RootSelector> selectors): selectors(std::move(selectors)) {
         }
 
         const std::vector<RootSelector>& get() const {
@@ -349,7 +350,7 @@ class Selectors {
 
         friend std::ostream& operator<<(std::ostream& o, const Selectors& self) {
             o << '[';
-            for (auto& x: self.selectors) {
+            for (const auto & x: self.selectors) {
                 o << x << ',';
             }
             return o << ']';
