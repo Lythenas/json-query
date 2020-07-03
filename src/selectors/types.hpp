@@ -17,27 +17,28 @@
  */
 
 class Selector {
-  public:
+   public:
     virtual ~Selector() noexcept = default;
     virtual void print() const { std::cout << "unimplemented!"; };
-    virtual Json *run(Json *) const = 0;
+    virtual Json* run(Json*) const = 0;
 };
 
 class AnyRootSelector : public Selector {
-  public:
+   public:
     ~AnyRootSelector() = default;
 
     virtual void print() const override { std::cout << "AnyRootSelector"; }
 
-    friend std::ostream& operator<<(std::ostream& o, const AnyRootSelector& /*unused*/) {
+    friend std::ostream& operator<<(std::ostream& o,
+                                    const AnyRootSelector& /*unused*/) {
         return o << "AnyRootSelector";
     }
 
-    virtual Json *run(Json *json) const override { return json; }
+    virtual Json* run(Json* json) const override { return json; }
 };
 
 class KeySelector : public Selector {
-  public:
+   public:
     KeySelector() = default;
     KeySelector(std::string key) : key(std::move(key)) {}
     ~KeySelector() = default;
@@ -46,47 +47,44 @@ class KeySelector : public Selector {
         std::cout << "KeySelector(\"" << key << "\")";
     }
 
-    const std::string& get() const {
-        return key;
-    }
+    const std::string& get() const { return key; }
 
     friend std::ostream& operator<<(std::ostream& o, const KeySelector& self) {
         return o << "KeySelector(" << self.key << ")";
     }
 
     // TODO
-    virtual Json *run(Json *json) const override {
+    virtual Json* run(Json* json) const override {
         // selects one key from an object
         // error if not an object
         return new Json();
     }
 
-  private:
+   private:
     std::string key;
 };
 
 class IndexSelector : public Selector {
-  public:
+   public:
     int index;
 
     IndexSelector() = default;
     IndexSelector(int index) : index(index) {}
     ~IndexSelector() = default;
 
-    int get() const {
-        return index;
-    }
+    int get() const { return index; }
 
     virtual void print() const noexcept override {
         std::cout << "IndexSelector(" << index << ")";
     }
 
-    friend std::ostream& operator<<(std::ostream& o, const IndexSelector& self) {
+    friend std::ostream& operator<<(std::ostream& o,
+                                    const IndexSelector& self) {
         return o << "IndexSelector(" << self.index << ")";
     }
 
     // TODO
-    virtual Json *run(Json *json) const override {
+    virtual Json* run(Json* json) const override {
         // select one element from an array
         // error if not an array
         return new Json();
@@ -94,7 +92,7 @@ class IndexSelector : public Selector {
 };
 
 class RangeSelector : public Selector {
-  public:
+   public:
     RangeSelector() = default;
     RangeSelector(boost::optional<RangeSelector> r) {
         if (r) {
@@ -106,13 +104,9 @@ class RangeSelector : public Selector {
         : start(start), end(end) {}
     ~RangeSelector() = default;
 
-    const boost::optional<int>& get_start() const {
-        return start;
-    }
+    const boost::optional<int>& get_start() const { return start; }
 
-    const boost::optional<int>& get_end() const {
-        return end;
-    }
+    const boost::optional<int>& get_end() const { return end; }
 
     virtual void print() const noexcept override {
         std::cout << "RangeSelector("
@@ -121,27 +115,31 @@ class RangeSelector : public Selector {
                   << ")";
     }
 
-    friend std::ostream& operator<<(std::ostream& o, const RangeSelector& self) {
+    friend std::ostream& operator<<(std::ostream& o,
+                                    const RangeSelector& self) {
         return o << "RangeSelector("
-                  << (self.start.has_value() ? std::to_string(self.start.value()) : "")
-                  << "," << (self.end.has_value() ? std::to_string(self.end.value()) : "")
-                  << ")";
+                 << (self.start.has_value() ? std::to_string(self.start.value())
+                                            : "")
+                 << ","
+                 << (self.end.has_value() ? std::to_string(self.end.value())
+                                          : "")
+                 << ")";
     }
 
     // TODO
-    virtual Json *run(Json *json) const override {
+    virtual Json* run(Json* json) const override {
         // select one element from an array
         // error if not an array
         return new Json();
     }
 
-  private:
+   private:
     boost::optional<int> start;
     boost::optional<int> end;
 };
 
 class PropertySelector : public Selector {
-  public:
+   public:
     PropertySelector() = default;
     PropertySelector(std::vector<KeySelector> keys) : keys(std::move(keys)) {}
     ~PropertySelector() = default;
@@ -151,49 +149,46 @@ class PropertySelector : public Selector {
     //     }
     // }
 
-    const std::vector<KeySelector>& get_keys() const {
-        return keys;
-    }
+    const std::vector<KeySelector>& get_keys() const { return keys; }
 
     virtual void print() const noexcept override {
         std::cout << "PropertySelector{";
-        for (const auto &x : keys) {
+        for (const auto& x : keys) {
             x.print();
             std::cout << ",";
         }
         std::cout << "}";
     }
 
-    friend std::ostream& operator<<(std::ostream& o, const PropertySelector& self) {
+    friend std::ostream& operator<<(std::ostream& o,
+                                    const PropertySelector& self) {
         o << "PropertySelector(";
-        for (const auto &x: self.keys) {
+        for (const auto& x : self.keys) {
             o << x << ",";
         }
         return o << ")";
     }
 
     // TODO
-    virtual Json *run(Json *json) const override {
+    virtual Json* run(Json* json) const override {
         // select properties from object
         // and return a new object with those properties
         // error if not an object
         return new Json();
     }
 
-  private:
+   private:
     std::vector<KeySelector> keys;
 };
 
 class FilterSelector : public Selector {
-  public:
+   public:
     FilterSelector() = default;
     FilterSelector(const KeySelector& filter) : filter(filter) {}
     ~FilterSelector() = default;
     // virtual ~FilterSelector() noexcept { delete filter; }
 
-    const KeySelector& get() const {
-        return filter;
-    }
+    const KeySelector& get() const { return filter; }
 
     virtual void print() const noexcept override {
         std::cout << "FilterSelector(";
@@ -201,24 +196,25 @@ class FilterSelector : public Selector {
         std::cout << "}";
     }
 
-    friend std::ostream& operator<<(std::ostream& o, const FilterSelector& self) {
+    friend std::ostream& operator<<(std::ostream& o,
+                                    const FilterSelector& self) {
         return o << "FilterSelector(" << self.filter << ")";
     }
 
     // TODO
-    virtual Json *run(Json *json) const override {
+    virtual Json* run(Json* json) const override {
         // filter array for elements with that key, select that key
         // and return new array
         // error if not an array
         return new Json();
     }
 
-  private:
+   private:
     KeySelector filter;
 };
 
 class TruncateSelector : public Selector {
-  public:
+   public:
     TruncateSelector() = default;
     ~TruncateSelector() = default;
 
@@ -226,12 +222,13 @@ class TruncateSelector : public Selector {
         std::cout << "TruncateSelector";
     }
 
-    friend std::ostream& operator<<(std::ostream& o, const TruncateSelector& /*unused*/) {
+    friend std::ostream& operator<<(std::ostream& o,
+                                    const TruncateSelector& /*unused*/) {
         return o << "TruncateSelector";
     }
 
     // TODO
-    virtual Json *run(Json *json) const override {
+    virtual Json* run(Json* json) const override {
         // stop processing json
         // and return the trivial element or an empty array or object
         return new Json();
@@ -239,81 +236,81 @@ class TruncateSelector : public Selector {
 };
 
 struct print_visitor : public boost::static_visitor<> {
-    template<typename T>
+    template <typename T>
     void operator()(T& operand) const {
         operand.print();
     }
 };
 
 class SelectorNode {
-  public:
+   public:
     SelectorNode() = default;
-    SelectorNode(AnyRootSelector inner): inner(inner) {
-    }
-    SelectorNode(KeySelector inner): inner(inner) {
-    }
-    SelectorNode(IndexSelector inner): inner(inner) {
-    }
-    SelectorNode(RangeSelector inner): inner(inner) {
-    }
-    SelectorNode(PropertySelector inner): inner(inner) {
-    }
-    SelectorNode(FilterSelector inner): inner(inner) {
-    }
-    SelectorNode(TruncateSelector inner): inner(inner) {
-    }
+    SelectorNode(AnyRootSelector inner) : inner(inner) {}
+    SelectorNode(KeySelector inner) : inner(inner) {}
+    SelectorNode(IndexSelector inner) : inner(inner) {}
+    SelectorNode(RangeSelector inner) : inner(inner) {}
+    SelectorNode(PropertySelector inner) : inner(inner) {}
+    SelectorNode(FilterSelector inner) : inner(inner) {}
+    SelectorNode(TruncateSelector inner) : inner(inner) {}
 
-    template<typename T>
+    template <typename T>
     const T& as() const {
         return boost::get<T>(inner);
     }
 
-    void print() const {
-        boost::apply_visitor(print_visitor(), inner);
-    }
+    void print() const { boost::apply_visitor(print_visitor(), inner); }
 
     friend std::ostream& operator<<(std::ostream& o, const SelectorNode& self) {
         if (const KeySelector* x = boost::get<KeySelector>(&self.inner)) {
             return o << *x;
-        } else if (const IndexSelector* x = boost::get<IndexSelector>(&self.inner)) {
+        } else if (const IndexSelector* x =
+                       boost::get<IndexSelector>(&self.inner)) {
             return o << *x;
-        } else if (const RangeSelector* x = boost::get<RangeSelector>(&self.inner)) {
+        } else if (const RangeSelector* x =
+                       boost::get<RangeSelector>(&self.inner)) {
             return o << *x;
-        } else if (const PropertySelector* x = boost::get<PropertySelector>(&self.inner)) {
+        } else if (const PropertySelector* x =
+                       boost::get<PropertySelector>(&self.inner)) {
             return o << *x;
-        } else if (const FilterSelector* x = boost::get<FilterSelector>(&self.inner)) {
+        } else if (const FilterSelector* x =
+                       boost::get<FilterSelector>(&self.inner)) {
             return o << *x;
-        } else if (const TruncateSelector* x = boost::get<TruncateSelector>(&self.inner)) {
+        } else if (const TruncateSelector* x =
+                       boost::get<TruncateSelector>(&self.inner)) {
             return o << *x;
         }
         return o;
     }
 
-    boost::variant<KeySelector, IndexSelector, RangeSelector, PropertySelector, FilterSelector, AnyRootSelector, TruncateSelector> inner;
+    boost::variant<KeySelector,
+                   IndexSelector,
+                   RangeSelector,
+                   PropertySelector,
+                   FilterSelector,
+                   AnyRootSelector,
+                   TruncateSelector>
+        inner;
 };
 
 class RootSelector {
-  public:
+   public:
     RootSelector() = default;
-    RootSelector(std::vector<SelectorNode> inner): inner(std::move(inner)) {
-    }
+    RootSelector(std::vector<SelectorNode> inner) : inner(std::move(inner)) {}
 
     void print() const {
         std::cout << "RootSelector {";
-        for (const auto &x : inner) {
+        for (const auto& x : inner) {
             x.print();
             std::cout << ",";
         }
         std::cout << "}\n";
     }
 
-    const std::vector<SelectorNode>& get() const {
-        return inner;
-    }
+    const std::vector<SelectorNode>& get() const { return inner; }
 
     friend std::ostream& operator<<(std::ostream& o, const RootSelector& self) {
         o << "RootSelector {";
-        for (const auto &x : self.inner) {
+        for (const auto& x : self.inner) {
             o << x << ",";
         }
         return o << "}";
@@ -334,30 +331,28 @@ class RootSelector {
     //         return inner[0].run(json);
     //     }
     // }
-  private:
+   private:
     std::vector<SelectorNode> inner;
 };
 
 class Selectors {
-    public:
-        Selectors() = default;
-        Selectors(std::vector<RootSelector> selectors): selectors(std::move(selectors)) {
-        }
+   public:
+    Selectors() = default;
+    Selectors(std::vector<RootSelector> selectors)
+        : selectors(std::move(selectors)) {}
 
-        const std::vector<RootSelector>& get() const {
-            return selectors;
-        }
+    const std::vector<RootSelector>& get() const { return selectors; }
 
-        friend std::ostream& operator<<(std::ostream& o, const Selectors& self) {
-            o << '[';
-            for (const auto & x: self.selectors) {
-                o << x << ',';
-            }
-            return o << ']';
+    friend std::ostream& operator<<(std::ostream& o, const Selectors& self) {
+        o << '[';
+        for (const auto& x : self.selectors) {
+            o << x << ',';
         }
+        return o << ']';
+    }
 
-    private:
-        std::vector<RootSelector> selectors;
+   private:
+    std::vector<RootSelector> selectors;
 };
 
 #endif

@@ -1,11 +1,11 @@
-#include <string>
 #include <gtest/gtest.h>
+#include <string>
 
 #include "selectors/selectors.hpp"
 
 // Checks for a single selector of a specific type and returns it.
-template<typename T>
-const T single_selector(const std::string s) {
+template <typename T>
+T single_selector(const std::string& s) {
     Selectors res = parse_selectors(s.begin(), s.end());
 
     auto selectors = res.get();
@@ -19,7 +19,7 @@ const T single_selector(const std::string s) {
 }
 
 // Checks for a single selector chain.
-const std::vector<SelectorNode> single_chain(const std::string s) {
+std::vector<SelectorNode> single_chain(const std::string& s) {
     Selectors res = parse_selectors(s.begin(), s.end());
 
     auto selectors = res.get();
@@ -30,9 +30,9 @@ const std::vector<SelectorNode> single_chain(const std::string s) {
     return {chain};
 }
 
-const std::vector<RootSelector> multiple(const std::string s) {
+std::vector<RootSelector> multiple(const std::string& s) {
     Selectors res = parse_selectors(s.begin(), s.end());
-    auto selectors = res.get();
+    const auto& selectors = res.get();
     EXPECT_GT(selectors.size(), 0) << "Selectors empty";
 
     return {selectors};
@@ -143,7 +143,7 @@ TEST(SelectorParser, FilterSelector) {
     {
         std::string s = R"#(|"key")#";
         auto selector = single_selector<FilterSelector>(s);
-        auto key = selector.get();
+        const auto& key = selector.get();
         EXPECT_EQ(key.get(), "key");
     }
 }
@@ -201,4 +201,3 @@ TEST(SelectorParser, MultipleKeys) {
         }
     }
 }
-

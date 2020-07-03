@@ -6,8 +6,8 @@
 #include <string>
 
 #include "errors.hpp"
-#include "selectors/selectors.hpp"
 #include "json/json.hpp"
+#include "selectors/selectors.hpp"
 
 struct Arguments {
     bool help = false;
@@ -15,7 +15,7 @@ struct Arguments {
     std::optional<std::string> file;
 };
 
-void print_arguments(const Arguments &args) {
+void print_arguments(const Arguments& args) {
     std::cerr << "=== DEBUG ===" << std::endl;
     std::cerr << "Arguments {" << std::endl
               << "\thelp = " << args.help << "," << std::endl
@@ -33,7 +33,7 @@ void print_arguments(const Arguments &args) {
 /**
  * Parses the arguemtns form argc and argv into and Arguments struct.
  */
-Arguments parse_arguments(int argc, char *argv[]) {
+Arguments parse_arguments(int argc, char* argv[]) {
     Arguments args;
 
     // no args or help flag display help
@@ -60,7 +60,7 @@ Arguments parse_arguments(int argc, char *argv[]) {
  *  @param takes an optional file
  *  @throws InputFileException if there was an error reading the file
  */
-std::string read_input(const std::optional<std::string> file) {
+std::string read_input(const std::optional<std::string>& file) {
     try {
         if (file) {
             std::ifstream ifs;
@@ -73,12 +73,12 @@ std::string read_input(const std::optional<std::string> file) {
             return std::string(std::istreambuf_iterator<char>(std::cin),
                                std::istreambuf_iterator<char>());
         }
-    } catch (std::ifstream::failure &) {
+    } catch (std::ifstream::failure&) {
         throw InputFileException();
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     const auto args = parse_arguments(argc, argv);
 
     if (args.help) {
@@ -98,19 +98,19 @@ int main(int argc, char *argv[]) {
     try {
         std::string content = read_input(args.file);
 
-        std::cerr << "=== DEBUG ===" << std::endl;
-        std::cerr << "content:" << std::endl << content;
-        std::cerr << "=== DEBUG END ===" << std::endl;
+        Json json = parse_json(content.begin(), content.end());
 
         Selectors selectors =
             parse_selectors(args.selector.begin(), args.selector.end());
-        // selector->print();
-        for (auto& x : selectors.get()) {
-            x.print();
-        }
-    } catch (const InputFileException &e) {
+
+        std::cerr << "=== DEBUG ===" << std::endl;
+        std::cerr << "content:" << std::endl << json << std::endl;
+        std::cerr << "selectors:" << std::endl << selectors << std::endl;
+        std::cerr << "=== DEBUG END ===" << std::endl;
+
+    } catch (const InputFileException& e) {
         std::cerr << e.what() << std::endl;
-    } catch (const FailedToParseSelectorException &e) {
+    } catch (const FailedToParseSelectorException& e) {
         std::cerr << "Failed to parse selector: " << e.what() << std::endl;
     }
 

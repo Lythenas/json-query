@@ -1,5 +1,5 @@
 #include "parser.hpp"
-
+#include "types.hpp"
 
 // GRAMMAR
 // https://tools.ietf.org/html/rfc8259
@@ -36,7 +36,6 @@
 // zero = "0"
 //
 // string = quotation-mark *char quotation-mark
-// char = unescaped | escape ( """ | "\" | "/" | "b" | "f" | "n" | "r" | "t" | ( "u" 4HEX ) )
-// escape = "\"
-// unescaped = %x20-21 | %x23-5B | %x5D-10FFFF
+// char = unescaped | escape ( """ | "\" | "/" | "b" | "f" | "n" | "r" | "t" | (
+// "u" 4HEX ) ) escape = "\" unescaped = %x20-21 | %x23-5B | %x5D-10FFFF
 //  (anything except " or \ or control characters)

@@ -2,7 +2,7 @@
 #define JSON_QUERY_SELECTOR_PARSER_HPP
 
 #ifndef NDEBUG
-    #undef BOOST_SPIRIT_DEBUG
+#undef BOOST_SPIRIT_DEBUG
 #endif
 
 #include <boost/phoenix.hpp>
@@ -17,20 +17,18 @@ namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 
 class FailedToParseSelectorException : public std::exception {
-  public:
-    FailedToParseSelectorException(const char* reason): reason(reason) {
-    }
+   public:
+    FailedToParseSelectorException(const char* reason) : reason(reason) {}
 
-    virtual const char *what() const noexcept override {
-        return reason;
-    }
+    virtual const char* what() const noexcept override { return reason; }
 
-  private:
+   private:
     const char* reason;
 };
 
-template<typename Iterator>
-struct selectors_grammar : qi::grammar<Iterator, Selectors(), ascii::space_type> {
+template <typename Iterator>
+struct selectors_grammar
+    : qi::grammar<Iterator, Selectors(), ascii::space_type> {
     selectors_grammar() : selectors_grammar::base_type(root) {
         using boost::phoenix::construct;
         using boost::phoenix::new_;
@@ -46,18 +44,23 @@ struct selectors_grammar : qi::grammar<Iterator, Selectors(), ascii::space_type>
         raw_root_item = basic >> *(compound);
 
         compound = -qi::lit('.') >> basic;
-        basic = (any_root | key | index | range | property | truncate | filter)[bind(&SelectorNode::inner, _val) = _1];
+        basic = (any_root | key | index | range | property | truncate |
+                 filter)[bind(&SelectorNode::inner, _val) = _1];
 
         filter = ('|' >> key)[_val = construct<FilterSelector>(_1)];
         truncate = qi::lit('!')[_val = construct<TruncateSelector>()];
-        property = ('{' >> (key % ',') >> '}')[_val = construct<PropertySelector>(_1)];
-        inner_range = (-qi::int_ >> ':' >> -qi::int_)[_val = construct<RangeSelector>(_1, _2)];
-        range = ('[' >> -inner_range >> ']')[_val = construct<RangeSelector>(_1)];
+        property =
+            ('{' >> (key % ',') >> '}')[_val = construct<PropertySelector>(_1)];
+        inner_range = (-qi::int_ >> ':' >>
+                       -qi::int_)[_val = construct<RangeSelector>(_1, _2)];
+        range =
+            ('[' >> -inner_range >> ']')[_val = construct<RangeSelector>(_1)];
         index = ('[' >> qi::int_ >> ']')[_val = construct<IndexSelector>(_1)];
         any_root = qi::lit('.')[_val = construct<AnyRootSelector>()];
         key = quoted_string[_val = construct<KeySelector>(_1)];
 
-        quoted_string = qi::no_skip[qi::lexeme['"' >> *(ascii::char_ - '"') >> '"']];
+        quoted_string =
+            qi::no_skip[qi::lexeme['"' >> *(ascii::char_ - '"') >> '"']];
 
         // set names and add debugging (ifndef NDEBUG)
         BOOST_SPIRIT_DEBUG_NODE(root);
@@ -81,7 +84,8 @@ struct selectors_grammar : qi::grammar<Iterator, Selectors(), ascii::space_type>
 
     qi::rule<Iterator, Selectors(), ascii::space_type> root;
     qi::rule<Iterator, RootSelector(), ascii::space_type> root_item;
-    qi::rule<Iterator, std::vector<SelectorNode>(), ascii::space_type> raw_root_item;
+    qi::rule<Iterator, std::vector<SelectorNode>(), ascii::space_type>
+        raw_root_item;
 
     qi::rule<Iterator, SelectorNode(), ascii::space_type> compound;
     qi::rule<Iterator, SelectorNode(), ascii::space_type> basic;
@@ -101,7 +105,8 @@ struct selectors_grammar : qi::grammar<Iterator, Selectors(), ascii::space_type>
 template <typename Iterator>
 Selectors parse_selectors(Iterator first, Iterator last) {
     Selectors selectors;
-    if (!qi::phrase_parse(first, last, selectors_grammar<Iterator>(), ascii::space, selectors)) {
+    if (!qi::phrase_parse(first, last, selectors_grammar<Iterator>(),
+                          ascii::space, selectors)) {
         throw FailedToParseSelectorException("parser failed");
     }
 

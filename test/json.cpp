@@ -1,11 +1,11 @@
+#include <gtest/gtest.h>
 #include <boost/none.hpp>
 #include <string>
-#include <gtest/gtest.h>
 
-#include "json/json.hpp"
 #include <utility>
+#include "json/json.hpp"
 
-template<typename T>
+template <typename T>
 T single_node(const std::string& s) {
     return parse_json(s.begin(), s.end()).get().as<T>();
 }
@@ -79,7 +79,9 @@ TEST(JsonParser, String) {
     {
         std::string s = R"#("Hello, World! \" \\ \n \b \f \r \t \u22")#";
         auto str = single_node<JsonString>(s);
-        EXPECT_EQ(str, JsonString("Hello, World! \\\" \\\\ \\n \\b \\f \\r \\t \\u22"));
+        EXPECT_EQ(
+            str,
+            JsonString("Hello, World! \\\" \\\\ \\n \\b \\f \\r \\t \\u22"));
     }
 }
 
@@ -97,7 +99,9 @@ TEST(JsonParser, Array) {
     {
         std::string s = R"#([1, 2, 3])#";
         auto arr = single_node<JsonArray>(s);
-        EXPECT_EQ(arr, JsonArray(std::vector{JsonNode(JsonNumber("1")), JsonNode(JsonNumber("2")), JsonNode(JsonNumber("3"))}));
+        EXPECT_EQ(arr, JsonArray(std::vector{JsonNode(JsonNumber("1")),
+                                             JsonNode(JsonNumber("2")),
+                                             JsonNode(JsonNumber("3"))}));
     }
 }
 
@@ -110,20 +114,17 @@ TEST(JsonParser, Object) {
     {
         std::string s = R"#({ "key1": 5 })#";
         auto obj = single_node<JsonObject>(s);
-        EXPECT_EQ(obj, JsonObject(
-            std::vector{
-                std::make_pair(std::string{"key1"}, JsonNode(JsonNumber("5")))
-            }
-        ));
+        EXPECT_EQ(obj, JsonObject(std::vector{std::make_pair(
+                           std::string{"key1"}, JsonNode(JsonNumber("5")))}));
     }
     {
         std::string s = R"#({ "key1": 5, "key2": 7 })#";
         auto obj = single_node<JsonObject>(s);
-        EXPECT_EQ(obj, JsonObject(
-            std::vector{
+        EXPECT_EQ(
+            obj,
+            JsonObject(std::vector{
                 std::make_pair(std::string{"key1"}, JsonNode(JsonNumber("5"))),
-                std::make_pair(std::string{"key2"}, JsonNode(JsonNumber("7")))
-            }
-        ));
+                std::make_pair(std::string{"key2"},
+                               JsonNode(JsonNumber("7")))}));
     }
 }
