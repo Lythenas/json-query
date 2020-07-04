@@ -1,5 +1,6 @@
-#include <benchmark/benchmark.h>
 #include <string>
+#include <benchmark/benchmark.h>
+
 #include "selectors/selectors.hpp"
 
 static void BM_SelectorParsing_Multiple2(benchmark::State& state) {
@@ -71,5 +72,3 @@ BENCHMARK(BM_SelectorParsing_Multiple32);
 BENCHMARK(BM_SelectorParsing_Single);
 BENCHMARK(BM_SelectorParsing_Single4);
 BENCHMARK(BM_SelectorParsing_Single16);
-
-BENCHMARK_MAIN();
