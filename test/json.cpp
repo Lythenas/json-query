@@ -1,3 +1,4 @@
+#include "json/types.hpp"
 #include <gtest/gtest.h>
 #include <boost/none.hpp>
 #include <string>
@@ -126,5 +127,51 @@ TEST(JsonParser, Object) {
                 std::make_pair(std::string{"key1"}, JsonNode(JsonNumber("5"))),
                 std::make_pair(std::string{"key2"},
                                JsonNode(JsonNumber("7")))}));
+    }
+}
+
+TEST(JsonParser, Nested) {
+    {
+        std::string s = R"#({ "array": [ { "id": 1, "value": "x" }, { "id": 2, "value": "y" } ] })#";
+        auto obj = single_node<JsonObject>(s);
+        EXPECT_EQ(
+            obj,
+            JsonObject(std::vector{
+                std::make_pair(std::string{"array"}, JsonNode(JsonArray(std::vector{
+                    JsonNode(JsonObject(std::vector{
+                        std::make_pair(std::string{"id"}, JsonNode(JsonNumber("1"))),
+                        std::make_pair(std::string{"value"}, JsonNode(JsonString("x")))
+                    })),
+                    JsonNode(JsonObject(std::vector{
+                        std::make_pair(std::string{"id"}, JsonNode(JsonNumber("2"))),
+                        std::make_pair(std::string{"value"}, JsonNode(JsonString("y")))
+                    }))
+                })))
+            })
+        );
+    }
+    {
+        std::string s = R"#({
+    "array": [
+        { "id": 1, "value": "x" },
+        { "id": 2, "value": "y" }
+    ]
+})#";
+        auto obj = single_node<JsonObject>(s);
+        EXPECT_EQ(
+            obj,
+            JsonObject(std::vector{
+                std::make_pair(std::string{"array"}, JsonNode(JsonArray(std::vector{
+                    JsonNode(JsonObject(std::vector{
+                        std::make_pair(std::string{"id"}, JsonNode(JsonNumber("1"))),
+                        std::make_pair(std::string{"value"}, JsonNode(JsonString("x")))
+                    })),
+                    JsonNode(JsonObject(std::vector{
+                        std::make_pair(std::string{"id"}, JsonNode(JsonNumber("2"))),
+                        std::make_pair(std::string{"value"}, JsonNode(JsonString("y")))
+                    }))
+                })))
+            })
+        );
     }
 }
