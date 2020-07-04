@@ -10,42 +10,62 @@
 #include "../json/types.hpp"
 
 /**
- *  Selectors are linear (except for the selectors in RootSelector).
+ * Selectors can be applied to json to filter are linear (except for RootSelector).
  *
- *  That means selectors aren't a tree and can't be grouped. They are executed
- *  from left to right.
+ * That means selectors aren't a tree and can't be grouped. They are executed
+ * from left to right.
  */
-
 class Selector {
    public:
     virtual ~Selector() noexcept = default;
-    virtual void print() const { std::cout << "unimplemented!"; };
-    virtual Json* run(Json*) const = 0;
 };
 
+/**
+ * Selects everything.
+ *
+ * Can only be the first element of a RootSelector but can be followed by other
+ * selectors.
+ *
+ * Can be applied to all json items.
+ */
 class AnyRootSelector : public Selector {
    public:
     ~AnyRootSelector() = default;
-
-    virtual void print() const override { std::cout << "AnyRootSelector"; }
 
     friend std::ostream& operator<<(std::ostream& o,
                                     const AnyRootSelector& /*unused*/) {
         return o << "AnyRootSelector";
     }
-
-    virtual Json* run(Json* json) const override { return json; }
 };
 
+/**
+ * Selects a single key/property from an object.
+ *
+ * Identified by a string surrounded with `"`.
+ *
+ * Can only be applied to objects.
+ *
+ * E.g.
+ *
+ * ```json
+ * {
+ *   "key1": 1,
+ *   "key2": 2,
+ *   "key3": 3
+ * }
+ * ```
+ *
+ * with the selector `"key2"` turns into
+ *
+ * ```json
+ * 2
+ * ```
+ */
 class KeySelector : public Selector {
    public:
     KeySelector() = default;
     KeySelector(std::string key) : key(std::move(key)) {}
     ~KeySelector() = default;
-
-    virtual void print() const noexcept override {
-        std::cout << "KeySelector(\"" << key << "\")";
-    }
 
     const std::string& get() const { return key; }
 
@@ -53,17 +73,29 @@ class KeySelector : public Selector {
         return o << "KeySelector(" << self.key << ")";
     }
 
-    // TODO
-    virtual Json* run(Json* json) const override {
-        // selects one key from an object
-        // error if not an object
-        return new Json();
-    }
-
    private:
     std::string key;
 };
 
+/**
+ * Selects an element from an array.
+ *
+ * Identified by `[` and `]` with a single number in between.
+ *
+ * Can only be applied to arrays.
+ *
+ * E.g.
+ *
+ * ```json
+ * [ 1, 2, 3 ]
+ * ```
+ *
+ * with the selector `[1]` turns into
+ *
+ * ```json
+ * 2
+ * ```
+ */
 class IndexSelector : public Selector {
    public:
     int index;
@@ -74,23 +106,35 @@ class IndexSelector : public Selector {
 
     int get() const { return index; }
 
-    virtual void print() const noexcept override {
-        std::cout << "IndexSelector(" << index << ")";
-    }
-
     friend std::ostream& operator<<(std::ostream& o,
                                     const IndexSelector& self) {
         return o << "IndexSelector(" << self.index << ")";
     }
-
-    // TODO
-    virtual Json* run(Json* json) const override {
-        // select one element from an array
-        // error if not an array
-        return new Json();
-    }
 };
 
+/**
+ * Selects a range from an array.
+ *
+ * Identified by `[` and `]` with a range in between. The range can have a start
+ * and an end separated by `:`. If there is nothing between the brackets it is
+ * the same as `[:]`.
+ *
+ * Can only be applied to arrays.
+ *
+ * E.g. `[1:2]`, `[4:]`, `[:3]`, `[:]`, `[]`
+ *
+ * E.g.
+ *
+ * ```json
+ * [ 1, 2, 3, 4, 5 ]
+ * ```
+ *
+ * with the range `[1:3]` turns into
+ *
+ * ```json
+ * [ 2, 3, 4 ]
+ * ```
+ */
 class RangeSelector : public Selector {
    public:
     RangeSelector() = default;
@@ -108,13 +152,6 @@ class RangeSelector : public Selector {
 
     const boost::optional<int>& get_end() const { return end; }
 
-    virtual void print() const noexcept override {
-        std::cout << "RangeSelector("
-                  << (start.has_value() ? std::to_string(start.value()) : "")
-                  << "," << (end.has_value() ? std::to_string(end.value()) : "")
-                  << ")";
-    }
-
     friend std::ostream& operator<<(std::ostream& o,
                                     const RangeSelector& self) {
         return o << "RangeSelector("
@@ -126,39 +163,44 @@ class RangeSelector : public Selector {
                  << ")";
     }
 
-    // TODO
-    virtual Json* run(Json* json) const override {
-        // select one element from an array
-        // error if not an array
-        return new Json();
-    }
-
    private:
     boost::optional<int> start;
     boost::optional<int> end;
 };
 
+/**
+ * Selects (multiple) properties/keys from an object.
+ *
+ * Identified by `{` and `}` with a list of keys in between.
+ *
+ * Can only be applied to objects.
+ *
+ * E.g.
+ *
+ * ```json
+ * {
+ *   "key1": 1,
+ *   "key2": 2,
+ *   "key3": 3
+ * }
+ * ```
+ *
+ * with the selector `{"key1", "key3"}` turns into
+ *
+ * ```json
+ * {
+ *   "key1": 1,
+ *   "key3": 3
+ * }
+ * ```
+ */
 class PropertySelector : public Selector {
    public:
     PropertySelector() = default;
     PropertySelector(std::vector<KeySelector> keys) : keys(std::move(keys)) {}
     ~PropertySelector() = default;
-    // virtual ~PropertySelector() noexcept {
-    //     for (auto &x : keys) {
-    //         delete x;
-    //     }
-    // }
 
     const std::vector<KeySelector>& get_keys() const { return keys; }
-
-    virtual void print() const noexcept override {
-        std::cout << "PropertySelector{";
-        for (const auto& x : keys) {
-            x.print();
-            std::cout << ",";
-        }
-        std::cout << "}";
-    }
 
     friend std::ostream& operator<<(std::ostream& o,
                                     const PropertySelector& self) {
@@ -169,79 +211,81 @@ class PropertySelector : public Selector {
         return o << ")";
     }
 
-    // TODO
-    virtual Json* run(Json* json) const override {
-        // select properties from object
-        // and return a new object with those properties
-        // error if not an object
-        return new Json();
-    }
-
    private:
     std::vector<KeySelector> keys;
 };
 
+/**
+ * Selector to filter arrays.
+ *
+ * Identified by `|` followed by a key.
+ *
+ * Only works on arrays. When applied it filters the array for objects
+ * containing the given key and returns an array containing the associated
+ * items of the keys.
+ *
+ * Can only be applied to arrays.
+ *
+ * E.g.
+ *
+ * ```json
+ * [
+ *   { "key": 1 },
+ *   { "key": 2 },
+ *   { "key": 3 }
+ * ]
+ * ```
+ *
+ * with the filter `|"key"` turns into
+ *
+ * ```json
+ * [ 1, 2, 3 ]
+ * ```
+ */
 class FilterSelector : public Selector {
    public:
     FilterSelector() = default;
     FilterSelector(const KeySelector& filter) : filter(filter) {}
     ~FilterSelector() = default;
-    // virtual ~FilterSelector() noexcept { delete filter; }
 
     const KeySelector& get() const { return filter; }
-
-    virtual void print() const noexcept override {
-        std::cout << "FilterSelector(";
-        filter.print();
-        std::cout << "}";
-    }
 
     friend std::ostream& operator<<(std::ostream& o,
                                     const FilterSelector& self) {
         return o << "FilterSelector(" << self.filter << ")";
     }
 
-    // TODO
-    virtual Json* run(Json* json) const override {
-        // filter array for elements with that key, select that key
-        // and return new array
-        // error if not an array
-        return new Json();
-    }
-
    private:
     KeySelector filter;
 };
 
+/**
+ * Selector to truncate json.
+ *
+ * Identified by `!`.
+ *
+ * When applied truncates the json at the current item. Outputting the item if
+ * it is a number or a string and outputting an empty object or array for
+ * objects and arrays.
+ *
+ * Can be applied to all json items.
+ */
 class TruncateSelector : public Selector {
    public:
     TruncateSelector() = default;
     ~TruncateSelector() = default;
 
-    virtual void print() const noexcept override {
-        std::cout << "TruncateSelector";
-    }
-
     friend std::ostream& operator<<(std::ostream& o,
                                     const TruncateSelector& /*unused*/) {
         return o << "TruncateSelector";
     }
-
-    // TODO
-    virtual Json* run(Json* json) const override {
-        // stop processing json
-        // and return the trivial element or an empty array or object
-        return new Json();
-    }
 };
 
-struct print_visitor : public boost::static_visitor<> {
-    template <typename T>
-    void operator()(T& operand) const {
-        operand.print();
-    }
-};
-
+/**
+ * Unifying wrapper for all selector kinds.
+ *
+ * This avoids having to allocate each constructor separately on the heap.
+ */
 class SelectorNode {
    public:
     SelectorNode() = default;
@@ -257,8 +301,6 @@ class SelectorNode {
     const T& as() const {
         return boost::get<T>(inner);
     }
-
-    void print() const { boost::apply_visitor(print_visitor(), inner); }
 
     friend std::ostream& operator<<(std::ostream& o, const SelectorNode& self) {
         if (const KeySelector* x = boost::get<KeySelector>(&self.inner)) {
@@ -282,6 +324,7 @@ class SelectorNode {
         return o;
     }
 
+  private:
     boost::variant<KeySelector,
                    IndexSelector,
                    RangeSelector,
@@ -292,19 +335,16 @@ class SelectorNode {
         inner;
 };
 
+/**
+ * Contains a list of sequential selectors.
+ *
+ * The result of applying the selector is the result of applying all selectors
+ * in sequential order.
+ */
 class RootSelector {
    public:
     RootSelector() = default;
     RootSelector(std::vector<SelectorNode> inner) : inner(std::move(inner)) {}
-
-    void print() const {
-        std::cout << "RootSelector {";
-        for (const auto& x : inner) {
-            x.print();
-            std::cout << ",";
-        }
-        std::cout << "}\n";
-    }
 
     const std::vector<SelectorNode>& get() const { return inner; }
 
@@ -316,25 +356,20 @@ class RootSelector {
         return o << "}";
     }
 
-    // TODO
-    // Json *run(Json *json) const {
-    //     // zero inner selectors are invalid
-    //     assert(inner.size() > 0);
-    //
-    //     if (inner.size() > 1) {
-    //         for (auto &selector : inner) {
-    //             // run selectors
-    //         }
-    //         // return list of results
-    //         return new Json();
-    //     } else {
-    //         return inner[0].run(json);
-    //     }
-    // }
    private:
     std::vector<SelectorNode> inner;
 };
 
+/**
+ * Selectors is a list of independent [RootSelectors](@ref RootSelector).
+ *
+ * If there is only one root selector the result of applying the selectors is
+ * simply the result of that selector.  If there is more than one root
+ * selectors the result is a list of the results of those selectors.
+ *
+ * TODO decide if an empty list of root selectors is valid (and probably treat
+ * is as a noop)
+ */
 class Selectors {
    public:
     Selectors() = default;
@@ -342,6 +377,7 @@ class Selectors {
         : selectors(std::move(selectors)) {}
 
     const std::vector<RootSelector>& get() const { return selectors; }
+    std::vector<RootSelector>& get() { return selectors; }
 
     friend std::ostream& operator<<(std::ostream& o, const Selectors& self) {
         o << '[';
