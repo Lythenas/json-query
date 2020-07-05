@@ -1,25 +1,42 @@
 #include "types.hpp"
 
-std::ostream& operator<<(std::ostream& o, const JsonObject& self) {
-    o << "{";
+// Here are the things that can't be defined in types.hpp because of incomplete
+// type errors. Grrrrr
 
-    const char* sep = "";
-    for (const auto& i : self.members) {
-        o << sep << "\"" << i.first << "\": " << i.second;
-        sep = ",";
+namespace json {
+
+    // class JsonString
+    std::ostream& operator<<(std::ostream& o, const JsonString& self) {
+        return o << "\"" << self.str << "\"";
     }
 
-    return o << "}";
-}
+    // class JsonObject
+    bool JsonObject::operator==(const JsonObject& other) const {
+        return this->members == other.members;
+    }
+    std::ostream& operator<<(std::ostream& o, const JsonObject& self) {
+        o << "{";
 
-std::ostream& operator<<(std::ostream& o, const JsonArray& self) {
-    o << "[";
+        const char* sep = "";
+        for (const auto& i : self.members) {
+            o << sep << "\"" << i.first << "\": " << i.second;
+            sep = ",";
+        }
 
-    const char* sep = "";
-    for (const auto& i : self.items) {
-        o << sep << i;
-        sep = ",";
+        return o << "}";
     }
 
-    return o << "]";
-}
+    // class Array
+    std::ostream& operator<<(std::ostream& o, const JsonArray& self) {
+        o << "[";
+
+        const char* sep = "";
+        for (const auto& i : self.items) {
+            o << sep << i;
+            sep = ",";
+        }
+
+        return o << "]";
+    }
+
+} // namespace json

@@ -9,6 +9,12 @@
 #include "json/json.hpp"
 #include "selectors/selectors.hpp"
 
+using json::Json;
+using json::parse_json;
+using selectors::FailedToParseSelectorException;
+using selectors::parse_selectors;
+using selectors::Selectors;
+
 struct Arguments {
     bool help = false;
     std::string selector;
@@ -107,6 +113,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "content:" << std::endl << json << std::endl;
         std::cerr << "selectors:" << std::endl << selectors << std::endl;
         std::cerr << "=== DEBUG END ===" << std::endl;
+
+        // Json output = selectors.run(json);
 
     } catch (const InputFileException& e) {
         std::cerr << e.what() << std::endl;

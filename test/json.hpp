@@ -1,10 +1,13 @@
-#include "json/types.hpp"
 #include <gtest/gtest.h>
+
 #include <boost/none.hpp>
 #include <string>
-
 #include <utility>
+
 #include "json/json.hpp"
+#include "json/types.hpp"
+
+using namespace json;
 
 template <typename T>
 T single_node(const std::string& s) {
@@ -132,23 +135,24 @@ TEST(JsonParser, Object) {
 
 TEST(JsonParser, Nested) {
     {
-        std::string s = R"#({ "array": [ { "id": 1, "value": "x" }, { "id": 2, "value": "y" } ] })#";
+        std::string s =
+            R"#({ "array": [ { "id": 1, "value": "x" }, { "id": 2, "value": "y" } ] })#";
         auto obj = single_node<JsonObject>(s);
         EXPECT_EQ(
             obj,
-            JsonObject(std::vector{
-                std::make_pair(std::string{"array"}, JsonNode(JsonArray(std::vector{
+            JsonObject(std::vector{std::make_pair(
+                std::string{"array"},
+                JsonNode(JsonArray(std::vector{
                     JsonNode(JsonObject(std::vector{
-                        std::make_pair(std::string{"id"}, JsonNode(JsonNumber("1"))),
-                        std::make_pair(std::string{"value"}, JsonNode(JsonString("x")))
-                    })),
+                        std::make_pair(std::string{"id"},
+                                       JsonNode(JsonNumber("1"))),
+                        std::make_pair(std::string{"value"},
+                                       JsonNode(JsonString("x")))})),
                     JsonNode(JsonObject(std::vector{
-                        std::make_pair(std::string{"id"}, JsonNode(JsonNumber("2"))),
-                        std::make_pair(std::string{"value"}, JsonNode(JsonString("y")))
-                    }))
-                })))
-            })
-        );
+                        std::make_pair(std::string{"id"},
+                                       JsonNode(JsonNumber("2"))),
+                        std::make_pair(std::string{"value"},
+                                       JsonNode(JsonString("y")))}))})))}));
     }
     {
         std::string s = R"#({
@@ -160,18 +164,18 @@ TEST(JsonParser, Nested) {
         auto obj = single_node<JsonObject>(s);
         EXPECT_EQ(
             obj,
-            JsonObject(std::vector{
-                std::make_pair(std::string{"array"}, JsonNode(JsonArray(std::vector{
+            JsonObject(std::vector{std::make_pair(
+                std::string{"array"},
+                JsonNode(JsonArray(std::vector{
                     JsonNode(JsonObject(std::vector{
-                        std::make_pair(std::string{"id"}, JsonNode(JsonNumber("1"))),
-                        std::make_pair(std::string{"value"}, JsonNode(JsonString("x")))
-                    })),
+                        std::make_pair(std::string{"id"},
+                                       JsonNode(JsonNumber("1"))),
+                        std::make_pair(std::string{"value"},
+                                       JsonNode(JsonString("x")))})),
                     JsonNode(JsonObject(std::vector{
-                        std::make_pair(std::string{"id"}, JsonNode(JsonNumber("2"))),
-                        std::make_pair(std::string{"value"}, JsonNode(JsonString("y")))
-                    }))
-                })))
-            })
-        );
+                        std::make_pair(std::string{"id"},
+                                       JsonNode(JsonNumber("2"))),
+                        std::make_pair(std::string{"value"},
+                                       JsonNode(JsonString("y")))}))})))}));
     }
 }

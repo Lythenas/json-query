@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
+
 #include <string>
 
 #include "selectors/selectors.hpp"
+
+using namespace selectors;
 
 // Checks for a single selector of a specific type and returns it.
 template <typename T>

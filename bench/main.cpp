@@ -1,6 +1,6 @@
 #include <benchmark/benchmark.h>
 
-#include "selectors.hpp"
 #include "json.hpp"
+#include "selectors.hpp"
 
 BENCHMARK_MAIN();
