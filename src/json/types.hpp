@@ -13,6 +13,17 @@ namespace json {
     class JsonNode;
     std::ostream& operator<<(std::ostream& o, const JsonNode& self);
 
+    /**
+     * A string in json.
+     *
+     * Contains the content of the string. I.e. what's inbetween the `"`s.
+     *
+     * E.g.
+     *
+     * ```json
+     * "something"
+     * ```
+     */
     class JsonString {
         std::string str;
 
@@ -25,6 +36,22 @@ namespace json {
         friend std::ostream& operator<<(std::ostream& o, const JsonString& self);
     };
 
+    /**
+     * A number in json.
+     *
+     * Contains the string that was used to represent the number in json. This
+     * is done so we can output the number exactly the same as in the input and
+     * there is no conversion between exponention and normal notation and there
+     * is also no loss of precision in floats and no limit to the size of ints.
+     *
+     * E.g.
+     *
+     * ```json
+     * 22
+     * 2.5
+     * -10e22
+     * ```
+     */
     class JsonNumber {
         std::string number;
 
@@ -34,27 +61,37 @@ namespace json {
         bool operator==(const JsonNumber&) const = default;
 
         friend std::ostream& operator<<(std::ostream& o, const JsonNumber& self) {
-            // o << self.number;
-            // if (self.fraction) {
-            //     o << '.' << self.fraction.value();
-            // }
-            // if (self.exponent) {
-            //     o << 'e' << self.exponent.value();
-            // }
-            // return o;
             return o << self.number;
         }
     };
 
+    /**
+     * An object in json.
+     *
+     * Contains a vector of key-value pairs. It is possible to have duplicate
+     * keys and the order of the keys is preserved. The keys are stored as
+     * strings (like in JsonString).
+     *
+     * Objects can be empty.
+     *
+     * E.g.
+     *
+     * ```json
+     * {
+     *   "key1": 22,
+     *   "key2": 42
+     * }
+     * ```
+     */
     class JsonObject {
-       public:
         std::vector<std::pair<std::string, JsonNode>> members;
 
+       public:
         JsonObject() = default;
         JsonObject(const std::vector<std::pair<std::string, JsonNode>>& members)
             : members(members) {}
         // needed by parser
-        JsonObject(
+        explicit JsonObject(
             const boost::optional<std::vector<std::pair<std::string, JsonNode>>>&
                 members) {
             if (members) {
@@ -63,26 +100,59 @@ namespace json {
         }
 
         bool operator==(const JsonObject&) const;
+
+        friend std::ostream& operator<<(std::ostream&, const JsonObject&);
     };
 
+    /**
+     * An array in json.
+     *
+     * Contains a vector of items. Can be empty.
+     *
+     * E.g.
+     *
+     * ```json
+     * [1, 2, 3]
+     * ```
+     */
     class JsonArray {
-       public:
         std::vector<JsonNode> items;
 
+       public:
         JsonArray() = default;
         JsonArray(std::vector<JsonNode> items) : items(std::move(items)) {}
         // needed by parser
-        JsonArray(boost::optional<std::vector<JsonNode>> items) {
+        explicit JsonArray(boost::optional<std::vector<JsonNode>> items) {
             if (items) {
                 this->items = boost::get(items);
             }
         }
 
         bool operator==(const JsonArray&) const = default;
+
+        friend std::ostream& operator<<(std::ostream&, const JsonArray&);
     };
 
-    enum JsonLiteralValue { JSON_TRUE, JSON_FALSE, JSON_NULL };
+    enum JsonLiteralValue {
+        /**
+         * Json literal `true`.
+         */
+        JSON_TRUE,
+        /**
+         * Json literal `false`.
+         */
+        JSON_FALSE,
+        /**
+         * Json literal `null`.
+         */
+        JSON_NULL
+    };
 
+    /**
+     * A literal in json.
+     *
+     * See JsonLiteralValue.
+     */
     class JsonLiteral {
         JsonLiteralValue value;
 
@@ -103,6 +173,11 @@ namespace json {
         }
     };
 
+    /**
+     * Unifying wrapper for all json item kinds.
+     *
+     * This avoids having to allocate each constructor separately on the heap.
+     */
     class JsonNode {
         using InnerVariant = boost::variant<JsonString, JsonNumber, JsonObject,
                                             JsonArray, JsonLiteral>;
@@ -123,28 +198,24 @@ namespace json {
         }
 
         friend std::ostream& operator<<(std::ostream& o, const JsonNode& self) {
-            boost::apply_visitor(ostream_visitor(o), self.inner);
+            auto print = [&o](auto& operand) {
+                o << operand;
+            };
+            boost::apply_visitor(print, self.inner);
             return o;
         }
 
-        InnerVariant inner;
-
        private:
-        struct ostream_visitor : public boost::static_visitor<> {
-            std::ostream& o;
-            ostream_visitor(std::ostream& o) : o(o) {}
-            template <typename T>
-            void operator()(T& operand) const {
-                o << operand;
-            }
-        };
+        InnerVariant inner;
     };
 
-    // has to be here instead of as friend functions because we need complete type
-    // of JsonNode.
-    std::ostream& operator<<(std::ostream& o, const JsonObject& self);
-    std::ostream& operator<<(std::ostream& o, const JsonArray& self);
-
+    /**
+     * Wrapper for an entire json *document*.
+     *
+     * Simply wraps a JsonNode.
+     *
+     * TODO not sure if we need this
+     */
     class Json {
        public:
         Json() = default;
