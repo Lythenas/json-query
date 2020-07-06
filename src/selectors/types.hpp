@@ -12,18 +12,6 @@
 namespace selectors {
 
     /**
-     * Selectors can be applied to json to filter are linear (except for
-     * RootSelector).
-     *
-     * That means selectors aren't a tree and can't be grouped. They are executed
-     * from left to right.
-     */
-    class Selector {
-       public:
-        virtual ~Selector() noexcept = default;
-    };
-
-    /**
      * Selects everything.
      *
      * Can only be the first element of a RootSelector but can be followed by other
@@ -31,10 +19,8 @@ namespace selectors {
      *
      * Can be applied to all json items.
      */
-    class AnyRootSelector : public Selector {
+    class AnyRootSelector {
        public:
-        ~AnyRootSelector() = default;
-
         friend std::ostream& operator<<(std::ostream& o,
                                         const AnyRootSelector& /*unused*/) {
             return o << "AnyRootSelector";
@@ -64,11 +50,10 @@ namespace selectors {
      * 2
      * ```
      */
-    class KeySelector : public Selector {
+    class KeySelector {
        public:
         KeySelector() = default;
         KeySelector(std::string key) : key(std::move(key)) {}
-        ~KeySelector() = default;
 
         const std::string& get() const { return key; }
 
@@ -99,13 +84,12 @@ namespace selectors {
      * 2
      * ```
      */
-    class IndexSelector : public Selector {
+    class IndexSelector {
        public:
         int index;
 
         IndexSelector() = default;
         IndexSelector(int index) : index(index) {}
-        ~IndexSelector() = default;
 
         int get() const { return index; }
 
@@ -138,7 +122,7 @@ namespace selectors {
      * [ 2, 3, 4 ]
      * ```
      */
-    class RangeSelector : public Selector {
+    class RangeSelector {
        public:
         RangeSelector() = default;
         RangeSelector(boost::optional<RangeSelector> r) {
@@ -149,7 +133,6 @@ namespace selectors {
         }
         RangeSelector(boost::optional<int> start, boost::optional<int> end)
             : start(start), end(end) {}
-        ~RangeSelector() = default;
 
         const boost::optional<int>& get_start() const { return start; }
 
@@ -197,11 +180,10 @@ namespace selectors {
      * }
      * ```
      */
-    class PropertySelector : public Selector {
+    class PropertySelector {
        public:
         PropertySelector() = default;
         PropertySelector(std::vector<KeySelector> keys) : keys(std::move(keys)) {}
-        ~PropertySelector() = default;
 
         const std::vector<KeySelector>& get_keys() const { return keys; }
 
@@ -245,11 +227,10 @@ namespace selectors {
      * [ 1, 2, 3 ]
      * ```
      */
-    class FilterSelector : public Selector {
+    class FilterSelector {
        public:
         FilterSelector() = default;
         FilterSelector(const KeySelector& filter) : filter(filter) {}
-        ~FilterSelector() = default;
 
         const KeySelector& get() const { return filter; }
 
@@ -273,10 +254,9 @@ namespace selectors {
      *
      * Can be applied to all json items.
      */
-    class TruncateSelector : public Selector {
+    class TruncateSelector {
        public:
         TruncateSelector() = default;
-        ~TruncateSelector() = default;
 
         friend std::ostream& operator<<(std::ostream& o,
                                         const TruncateSelector& /*unused*/) {
