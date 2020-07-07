@@ -99,6 +99,11 @@ namespace json {
             }
         }
 
+        /**
+         * Returns a reference to the value or throws std::out_of_range if not found.
+         */
+        const JsonNode& find(const std::string& key) const;
+
         bool operator==(const JsonObject&) const;
 
         friend std::ostream& operator<<(std::ostream&, const JsonObject&);
@@ -126,6 +131,14 @@ namespace json {
             if (items) {
                 this->items = boost::get(items);
             }
+        }
+
+        const std::vector<JsonNode>& get() const {
+            return items;
+        }
+
+        const JsonNode& at(std::size_t index) const {
+            return items.at(index);
         }
 
         bool operator==(const JsonArray&) const = default;
@@ -197,6 +210,14 @@ namespace json {
             return boost::get<T>(inner);
         }
 
+        /**
+         * Allow visitation lambdas.
+         */
+        template <typename Visitor>
+        decltype(auto) apply_visitor(Visitor&& visitor) const {
+            return boost::apply_visitor(visitor, inner);
+        }
+
         friend std::ostream& operator<<(std::ostream& o, const JsonNode& self) {
             auto print = [&o](auto& operand) {
                 o << operand;
@@ -222,6 +243,9 @@ namespace json {
         Json(JsonNode node) : node(std::move(node)) {}
 
         const JsonNode& get() const { return node; }
+        JsonNode& get() { return node; }
+
+        bool operator==(const Json&) const = default;
 
         friend std::ostream& operator<<(std::ostream& o, const Json& self) {
             return o << self.node;

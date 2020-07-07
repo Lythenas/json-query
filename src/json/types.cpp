@@ -11,6 +11,15 @@ namespace json {
     }
 
     // class JsonObject
+    const JsonNode& JsonObject::find(const std::string& key) const {
+        auto predicate = [&key](const auto& val) { return val.first == key; };
+        auto found = std::find_if(members.cbegin(), members.cend(), predicate);
+        if (found == members.cend()) {
+            throw std::out_of_range("json object does not contain key");
+        }
+        return (*found).second;
+    }
+
     bool JsonObject::operator==(const JsonObject& other) const {
         return this->members == other.members;
     }

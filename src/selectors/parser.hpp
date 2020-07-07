@@ -10,6 +10,7 @@
 #include <boost/spirit/include/qi.hpp>
 #include <iterator>
 #include <memory>
+#include <utility>
 
 #include "types.hpp"
 
@@ -52,7 +53,7 @@ namespace selectors {
             filter = ('|' >> key)[_val = construct<FilterSelector>(_1)];
             truncate = qi::lit('!')[_val = construct<TruncateSelector>()];
             property =
-                ('{' >> (key % ',') >> '}')[_val = construct<PropertySelector>(_1)];
+                ('{' >> (quoted_string % ',') >> '}')[_val = construct<PropertySelector>(_1)];
             inner_range = (-qi::int_ >> ':' >>
                            -qi::int_)[_val = construct<RangeSelector>(_1, _2)];
             range =
@@ -118,6 +119,10 @@ namespace selectors {
         }
 
         return selectors;
+    }
+
+    Selectors parse_selectors(const std::string&& s) {
+        return parse_selectors(s.begin(), s.end());
     }
 
 } // namespace selectors

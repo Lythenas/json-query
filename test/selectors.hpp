@@ -2,9 +2,189 @@
 
 #include <string>
 
+#include "selectors/parser.hpp"
 #include "selectors/selectors.hpp"
+#include "json/json.hpp"
 
 using namespace selectors;
+using namespace json;
+
+TEST(SelectorApplication, AnyRootSelector) {
+    {
+        Json json = parse_json(R"#({ "key1": 1, "key2": 2 })#");
+        Selectors selectors = parse_selectors(R"#(.)#");
+        Json result = selectors.apply(json);
+        EXPECT_EQ(result, json);
+    }
+}
+TEST(SelectorApplication, KeySelector) {
+    {
+        Json json = parse_json(R"#({ "key1": 1, "key2": 2 })#");
+        {
+            Selectors selectors = parse_selectors(R"#("key1")#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#(1)#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#("key2")#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#(2)#");
+            EXPECT_EQ(result, expected);
+        }
+    }
+}
+TEST(SelectorApplication, IndexSelector) {
+    {
+        Json json = parse_json(R"#([1, 2, 3, 4, 5])#");
+        {
+            Selectors selectors = parse_selectors(R"#([0])#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#(1)#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#([3])#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#(4)#");
+            EXPECT_EQ(result, expected);
+        }
+    }
+}
+TEST(SelectorApplication, RangeSelector) {
+    {
+        Json json = parse_json(R"#([1, 2, 3, 4, 5])#");
+        {
+            Selectors selectors = parse_selectors(R"#([0:2])#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#([1, 2, 3])#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#([2:])#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#([3, 4, 5])#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#([:1])#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#([1, 2])#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#([:])#");
+            Json result = selectors.apply(json);
+            EXPECT_EQ(result, json);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#([])#");
+            Json result = selectors.apply(json);
+            EXPECT_EQ(result, json);
+        }
+    }
+}
+TEST(SelectorApplication, PropertySelector) {
+    {
+        Json json = parse_json(R"#({ "key1": 1, "key2": 2, "key3": 3 })#");
+        {
+            Selectors selectors = parse_selectors(R"#({ "key1" })#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#({ "key1": 1 })#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#({ "key1", "key2" })#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#({ "key1": 1, "key2": 2 })#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#({ "key1", "key3" })#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#({ "key1": 1, "key3": 3 })#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#({ "key2", "key3" })#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#({ "key2": 2, "key3": 3 })#");
+            EXPECT_EQ(result, expected);
+        }
+    }
+}
+TEST(SelectorApplication, FilterSelector) {
+    {
+        Json json = parse_json(R"#([{"key1": 1}, {"key2": 2}, {"key1": 3}, {"key3": 4}, 5])#");
+        {
+            Selectors selectors = parse_selectors(R"#(|"key1")#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#([1, 3])#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#(|"key2")#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#([2])#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#(|"key3")#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#([4])#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Selectors selectors = parse_selectors(R"#(|"something")#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#([])#");
+            EXPECT_EQ(result, expected);
+        }
+    }
+}
+TEST(SelectorApplication, TruncateSelector) {
+    {
+        {
+            Json json = parse_json(R"#([1, 2, 3])#");
+            Selectors selectors = parse_selectors(R"#(!)#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#([])#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Json json = parse_json(R"#({"key1": 1, "key2": 2})#");
+            Selectors selectors = parse_selectors(R"#(!)#");
+            Json result = selectors.apply(json);
+            Json expected = parse_json(R"#({})#");
+            EXPECT_EQ(result, expected);
+        }
+        {
+            Json json = parse_json(R"#(2)#");
+            Selectors selectors = parse_selectors(R"#(!)#");
+            Json result = selectors.apply(json);
+            EXPECT_EQ(result, json);
+        }
+        {
+            Json json = parse_json(R"#("abc")#");
+            Selectors selectors = parse_selectors(R"#(!)#");
+            Json result = selectors.apply(json);
+            EXPECT_EQ(result, json);
+        }
+    }
+}
+
+TEST(SelectorApplication, MultipleRootSelectors) {
+    {
+        Json json = parse_json(R"#({ "key1": 1, "key2": 2 })#");
+        Selectors selectors = parse_selectors(R"#(.,.,.)#");
+        Json result = selectors.apply(json);
+        auto array = result.get().as<JsonArray>().get();
+        EXPECT_EQ(array.size(), 3);
+        EXPECT_EQ(array[0], json.get());
+        EXPECT_EQ(array[1], json.get());
+        EXPECT_EQ(array[2], json.get());
+    }
+}
 
 // Checks for a single selector of a specific type and returns it.
 template <typename T>
@@ -44,7 +224,7 @@ std::vector<RootSelector> multiple(const std::string& s) {
 TEST(SelectorParser, AnyRootSelector) {
     {
         std::string s = R"#(.)#";
-        auto selector = single_selector<AnyRootSelector>(s);
+        single_selector<AnyRootSelector>(s);
         // no content
     }
 }
@@ -130,15 +310,15 @@ TEST(SelectorParser, PropertySelector) {
         auto selector = single_selector<PropertySelector>(s);
         auto keys = selector.get_keys();
         EXPECT_EQ(keys.size(), 1);
-        EXPECT_EQ(keys[0].get(), "key1");
+        EXPECT_EQ(keys[0], "key1");
     }
     {
         std::string s = R"#({"key1","key2"})#";
         auto selector = single_selector<PropertySelector>(s);
         auto keys = selector.get_keys();
         EXPECT_EQ(keys.size(), 2);
-        EXPECT_EQ(keys[0].get(), "key1");
-        EXPECT_EQ(keys[1].get(), "key2");
+        EXPECT_EQ(keys[0], "key1");
+        EXPECT_EQ(keys[1], "key2");
     }
 }
 
@@ -154,7 +334,7 @@ TEST(SelectorParser, FilterSelector) {
 TEST(SelectorParser, TruncateSelector) {
     {
         std::string s = R"#(!)#";
-        auto selector = single_selector<TruncateSelector>(s);
+        single_selector<TruncateSelector>(s);
         // no content
     }
 }

@@ -114,8 +114,9 @@ int main(int argc, char* argv[]) {
         std::cerr << "selectors:" << std::endl << selectors << std::endl;
         std::cerr << "=== DEBUG END ===" << std::endl;
 
-        // Json output = selectors.run(json);
+        Json output = selectors.apply(json);
 
+        std::cout << output;
     } catch (const InputFileException& e) {
         std::cerr << e.what() << std::endl;
     } catch (const FailedToParseSelectorException& e) {

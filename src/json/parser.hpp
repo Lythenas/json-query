@@ -102,6 +102,10 @@ namespace json {
         return json;
     }
 
+    Json parse_json(const std::string&& s) {
+        return parse_json(s.begin(), s.end());
+    }
+
 } // namespace json
 
 #endif
