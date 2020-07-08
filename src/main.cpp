@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    print_arguments(args);
+    // print_arguments(args);
 
     try {
         std::string content = read_input(args.file);
@@ -109,10 +109,10 @@ int main(int argc, char* argv[]) {
         Selectors selectors =
             parse_selectors(args.selector.begin(), args.selector.end());
 
-        std::cerr << "=== DEBUG ===" << std::endl;
-        std::cerr << "content:" << std::endl << json << std::endl;
-        std::cerr << "selectors:" << std::endl << selectors << std::endl;
-        std::cerr << "=== DEBUG END ===" << std::endl;
+        // std::cerr << "=== DEBUG ===" << std::endl;
+        // std::cerr << "content:" << std::endl << json << std::endl;
+        // std::cerr << "selectors:" << std::endl << selectors << std::endl;
+        // std::cerr << "=== DEBUG END ===" << std::endl;
 
         Json output = selectors.apply(json);
 

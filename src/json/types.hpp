@@ -217,6 +217,10 @@ namespace json {
         decltype(auto) apply_visitor(Visitor&& visitor) const {
             return boost::apply_visitor(visitor, inner);
         }
+        template <typename Visitor, typename ...Args>
+        decltype(auto) apply_visitor(Visitor&& visitor, Args ...args) const {
+            return boost::apply_visitor(visitor, inner, args...);
+        }
 
         friend std::ostream& operator<<(std::ostream& o, const JsonNode& self) {
             auto print = [&o](auto& operand) {

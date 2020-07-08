@@ -14,6 +14,7 @@ namespace selectors {
     using namespace json;
     namespace ranges = std::ranges;
 
+    class SelectorNode;
 
     class Selector {
         public:
@@ -30,10 +31,6 @@ namespace selectors {
      */
     class AnyRootSelector : public Selector {
        public:
-
-        static JsonNode apply(const JsonNode& json)  {
-            return {json};
-        }
 
         friend std::ostream& operator<<(std::ostream& o,
                                         const AnyRootSelector& /*unused*/) {
@@ -71,11 +68,6 @@ namespace selectors {
 
         const std::string& get() const { return key; }
 
-        JsonNode apply(const JsonNode& json) const {
-            const auto& obj = json.as<JsonObject>();
-            return {obj.find(key)};
-        }
-
         friend std::ostream& operator<<(std::ostream& o, const KeySelector& self) {
             return o << "KeySelector(" << self.key << ")";
         }
@@ -111,11 +103,6 @@ namespace selectors {
         IndexSelector(int index) : index(index) {}
 
         int get() const { return index; }
-
-        JsonNode apply(const JsonNode& json) const {
-            const auto& arr = json.as<JsonArray>();
-            return {arr.at(index)};
-        }
 
         friend std::ostream& operator<<(std::ostream& o,
                                         const IndexSelector& self) {
@@ -161,16 +148,6 @@ namespace selectors {
         const boost::optional<int>& get_start() const { return start; }
 
         const boost::optional<int>& get_end() const { return end; }
-
-        JsonNode apply(const JsonNode& json) const {
-            const auto& arr = json.as<JsonArray>().get();
-
-            auto begin_it = arr.cbegin() + start.get_value_or(0);
-            auto end_it = arr.cbegin() + end.get_value_or(arr.size() - 1) + 1;
-            std::vector<JsonNode> result{begin_it, end_it};
-
-            return {JsonArray{result}};
-        }
 
         friend std::ostream& operator<<(std::ostream& o,
                                         const RangeSelector& self) {
@@ -221,17 +198,6 @@ namespace selectors {
 
         const std::vector<std::string>& get_keys() const { return keys; }
 
-        JsonNode apply(const JsonNode& json) const {
-            const auto& obj = json.as<JsonObject>();
-            std::vector<std::pair<std::string, JsonNode>> result;
-
-            for (const auto & key : keys) {
-                result.push_back(std::make_pair(key, obj.find(key)));
-            }
-
-            return {JsonObject(result)};
-        }
-
         friend std::ostream& operator<<(std::ostream& o,
                                         const PropertySelector& self) {
             o << "PropertySelector(";
@@ -279,22 +245,6 @@ namespace selectors {
 
         const KeySelector& get() const { return filter; }
 
-        JsonNode apply(const JsonNode& json) const {
-            const auto& arr = json.as<JsonArray>().get();
-            std::vector<JsonNode> result;
-
-            for (const auto& item : arr) {
-                try {
-                    auto inner = filter.apply(item);
-                    result.push_back(inner);
-                } catch (const std::out_of_range&) {
-                } catch (const boost::bad_get&) {
-                }
-            }
-
-            return {JsonArray(result)};
-        }
-
         friend std::ostream& operator<<(std::ostream& o,
                                         const FilterSelector& self) {
             return o << "FilterSelector(" << self.filter << ")";
@@ -318,16 +268,6 @@ namespace selectors {
     class TruncateSelector : public Selector {
        public:
         TruncateSelector() = default;
-
-        static JsonNode apply(const JsonNode& json)  {
-            // replace objects and arrays by their empty value,
-            // keep all other (primitive) values the same
-            return json.apply_visitor(overloaded {
-                [](const JsonObject& /*unused*/) { return JsonNode(JsonObject()); },
-                [](const JsonArray& /*unused*/) { return JsonNode(JsonArray()); },
-                [](const auto& x) { return JsonNode(x); },
-            });
-        }
 
         friend std::ostream& operator<<(std::ostream& o,
                                         const TruncateSelector& /*unused*/) {
@@ -362,11 +302,20 @@ namespace selectors {
             return boost::get<T>(inner);
         }
 
-        JsonNode apply(const JsonNode& json) const {
-            auto visitor = [&json](auto& selector) {
-                return selector.apply(json);
-            };
-            return boost::apply_visitor(visitor, inner);
+        template<typename Iterator>
+        JsonNode apply(const JsonNode& json, Iterator next, Iterator end) const {
+            return json.apply_visitor(overloaded {
+                [next, end](const auto& o, const auto& s) {
+                    return s.apply(o, next, end);
+                },
+                [](const auto& /*unused*/, const auto& /*unused*/) {
+                    throw std::runtime_error("selector and json object don't match");
+                }
+            }, inner);
+            // auto visitor = [&json](auto& selector) {
+            //     return selector.apply(json);
+            // };
+            // return boost::apply_visitor(visitor, inner);
         }
 
         friend std::ostream& operator<<(std::ostream& o, const SelectorNode& self) {
@@ -374,9 +323,100 @@ namespace selectors {
             return o;
         }
 
-       private:
+       // private:
         InnerVariant inner;
     };
+
+    // these template functions make it a little easier to find and extend what
+    // selector handles what json item
+    // but they generate ridiculous error matches...
+    JsonNode apply_selector(const TruncateSelector& /*unused*/, const JsonObject& /*unused*/, auto next, auto end) {
+        if (next != end) {
+            // TODO create something better to emit warnings
+            std::cerr << "Truncate is not last selector\n";
+        }
+        return JsonNode(JsonObject());
+    }
+    JsonNode apply_selector(const TruncateSelector& /*unused*/, const JsonArray& /*unused*/, auto next, auto end) {
+        if (next != end) {
+            std::cerr << "Truncate is not last selector\n";
+        }
+        return JsonNode(JsonArray());
+    }
+    JsonNode apply_selector(const TruncateSelector& /*unused*/, const auto& json, auto next, auto end) {
+        if (next != end) {
+            std::cerr << "Truncate is not last selector\n";
+        }
+        return JsonNode(json);
+    }
+    JsonNode apply_selector(const FilterSelector& s, const JsonArray& arr, auto next, auto end) {
+        std::vector<JsonNode> result;
+
+        for (const auto& item : arr.get()) {
+            try {
+                // only check JsonObjects and ignore all other items
+                item.apply_visitor(overloaded {
+                    [&result, &next, &end, key=s.get()](const JsonObject& obj) {
+                        result.push_back(apply_selector(key, obj, next, end));
+                    },
+                    [](const auto& /*unused*/) {}
+                });
+            } catch (const std::out_of_range&) {
+            }
+        }
+
+        return JsonNode(JsonArray(result));
+    }
+    JsonNode apply_selector(const PropertySelector& s, const JsonObject& obj, auto next, auto end) {
+        std::vector<std::pair<std::string, JsonNode>> result;
+
+        // redefinition of next so it does not get repeatedly incremented in the loop
+        auto next_ = next;
+
+        for (const auto & key : s.get_keys()) {
+            result.push_back(std::make_pair(key, apply_selector(obj.find(key), next_, end)));
+        }
+
+        return {JsonObject(result)};
+    }
+    JsonNode apply_selector(const RangeSelector& s, const JsonArray& array, auto next, auto end) {
+        const auto& arr = array.get();
+        auto begin_it = arr.cbegin() + s.get_start().get_value_or(0);
+        auto end_it = arr.cbegin() + s.get_end().get_value_or(arr.size() - 1) + 1;
+
+        std::vector<JsonNode> result;
+        std::transform(begin_it, end_it, std::back_inserter(result), [next, end](const JsonNode& item) {
+            return apply_selector(item, next, end);
+        });
+
+        return {JsonArray{result}};
+    }
+    JsonNode apply_selector(const IndexSelector& s, const JsonArray& arr, auto next, auto end) {
+        return apply_selector(arr.at(s.get()), next, end);
+    }
+    JsonNode apply_selector(const KeySelector& s, const JsonObject& obj, auto next, auto end) {
+        return apply_selector(obj.find(s.get()), next, end);
+    }
+    JsonNode apply_selector(const AnyRootSelector& /*unused*/, const auto& json, auto next, auto end)  {
+        return apply_selector(json, next, end);
+    }
+    JsonNode apply_selector(const auto& /*unused*/, const auto& /*unused*/, auto /*unused*/, auto /*unused*/) {
+        throw std::runtime_error("selector does not match json item");
+    }
+
+    JsonNode apply_selector(const JsonNode& json, auto next, auto end) {
+        if (next == end) {
+            return JsonNode(json);
+        }
+
+        const SelectorNode& next_s = *next;
+        // don't use ++ here because that would change the iterator and then we
+        // couldn't use it in the loops for e.g. RangeSelector
+        next = next+1;
+        return json.apply_visitor([&next, &end](auto& j, auto& s) {
+            return apply_selector(s, j, next, end);
+        }, next_s.inner);
+    }
 
     /**
      * Contains a list of sequential selectors.
@@ -392,10 +432,7 @@ namespace selectors {
         const std::vector<SelectorNode>& get() const { return inner; }
 
         JsonNode apply(const JsonNode& json) const {
-            auto f = [](const auto& node, const auto & selector) {
-                return selector.apply(node);
-            };
-            return std::accumulate(inner.begin(), inner.end(), json, f);
+            return apply_selector(json, inner.cbegin(), inner.cend());
         }
 
         friend std::ostream& operator<<(std::ostream& o, const RootSelector& self) {

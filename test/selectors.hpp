@@ -2,9 +2,9 @@
 
 #include <string>
 
+#include "json/json.hpp"
 #include "selectors/parser.hpp"
 #include "selectors/selectors.hpp"
-#include "json/json.hpp"
 
 using namespace selectors;
 using namespace json;
@@ -115,7 +115,8 @@ TEST(SelectorApplication, PropertySelector) {
 }
 TEST(SelectorApplication, FilterSelector) {
     {
-        Json json = parse_json(R"#([{"key1": 1}, {"key2": 2}, {"key1": 3}, {"key3": 4}, 5])#");
+        Json json = parse_json(
+            R"#([{"key1": 1}, {"key2": 2}, {"key1": 3}, {"key3": 4}, 5])#");
         {
             Selectors selectors = parse_selectors(R"#(|"key1")#");
             Json result = selectors.apply(json);
