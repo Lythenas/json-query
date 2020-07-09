@@ -3,6 +3,7 @@
 
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
+#include <boost/variant/detail/apply_visitor_binary.hpp>
 #include <boost/variant/static_visitor.hpp>
 #include <iostream>
 #include <utility>
@@ -31,6 +32,10 @@ namespace json {
         JsonString() = default;
         JsonString(std::string str) : str(std::move(str)) {}
 
+        static const char* name() {
+            return "String";
+        }
+
         bool operator==(const JsonString&) const = default;
 
         friend std::ostream& operator<<(std::ostream& o, const JsonString& self);
@@ -57,6 +62,10 @@ namespace json {
 
        public:
         JsonNumber(std::string s) : number(std::move(s)) {}
+
+        static const char* name() {
+            return "Number";
+        }
 
         bool operator==(const JsonNumber&) const = default;
 
@@ -99,6 +108,10 @@ namespace json {
             }
         }
 
+        static const char* name() {
+            return "Object";
+        }
+
         /**
          * Returns a reference to the value or throws std::out_of_range if not found.
          */
@@ -131,6 +144,10 @@ namespace json {
             if (items) {
                 this->items = boost::get(items);
             }
+        }
+
+        static const char* name() {
+            return "Array";
         }
 
         const std::vector<JsonNode>& get() const {
@@ -172,6 +189,10 @@ namespace json {
        public:
         JsonLiteral(JsonLiteralValue value) : value(value) {}
 
+        static const char* name() {
+            return "Literal";
+        }
+
         bool operator==(const JsonLiteral&) const = default;
 
         friend std::ostream& operator<<(std::ostream& o, const JsonLiteral& self) {
@@ -202,6 +223,10 @@ namespace json {
         JsonNode(JsonObject inner) : inner(inner) {}
         JsonNode(JsonArray inner) : inner(inner) {}
         JsonNode(JsonLiteral inner) : inner(inner) {}
+
+        const char* name() const {
+            return boost::apply_visitor([](auto& x) { return x.name(); }, inner);
+        }
 
         bool operator==(const JsonNode&) const = default;
 

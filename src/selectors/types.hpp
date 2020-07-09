@@ -31,6 +31,9 @@ namespace selectors {
      */
     class AnyRootSelector : public Selector {
        public:
+           static const char* name()  {
+                return "Any";
+           }
 
         friend std::ostream& operator<<(std::ostream& o,
                                         const AnyRootSelector& /*unused*/) {
@@ -65,6 +68,10 @@ namespace selectors {
        public:
         KeySelector() = default;
         KeySelector(std::string key) : key(std::move(key)) {}
+
+           static const char* name()  {
+                return "Key";
+           }
 
         const std::string& get() const { return key; }
 
@@ -101,6 +108,10 @@ namespace selectors {
 
         IndexSelector() = default;
         IndexSelector(int index) : index(index) {}
+
+           static const char* name()  {
+                return "Index";
+           }
 
         int get() const { return index; }
 
@@ -144,6 +155,10 @@ namespace selectors {
         }
         RangeSelector(boost::optional<int> start, boost::optional<int> end)
             : start(start), end(end) {}
+
+           static const char* name()  {
+                return "Range";
+           }
 
         const boost::optional<int>& get_start() const { return start; }
 
@@ -196,6 +211,10 @@ namespace selectors {
         PropertySelector() = default;
         PropertySelector(std::vector<std::string> keys) : keys(std::move(keys)) {}
 
+           static const char* name()  {
+                return "Property";
+           }
+
         const std::vector<std::string>& get_keys() const { return keys; }
 
         friend std::ostream& operator<<(std::ostream& o,
@@ -243,6 +262,10 @@ namespace selectors {
         FilterSelector() = default;
         FilterSelector(const KeySelector& filter) : filter(filter) {}
 
+           static const char* name()  {
+                return "Filter";
+           }
+
         const KeySelector& get() const { return filter; }
 
         friend std::ostream& operator<<(std::ostream& o,
@@ -268,6 +291,10 @@ namespace selectors {
     class TruncateSelector : public Selector {
        public:
         TruncateSelector() = default;
+
+           static const char* name()  {
+                return "Truncate";
+           }
 
         friend std::ostream& operator<<(std::ostream& o,
                                         const TruncateSelector& /*unused*/) {
@@ -297,6 +324,10 @@ namespace selectors {
         SelectorNode(TruncateSelector inner) : inner(inner) {}
         SelectorNode(InnerVariant inner) : inner(std::move(inner)) {}
 
+           const char* name() const {
+                return boost::apply_visitor([](const auto& x) { return x.name(); }, inner);
+           }
+
         template <typename T>
         const T& as() const {
             return boost::get<T>(inner);
@@ -308,8 +339,8 @@ namespace selectors {
                 [next, end](const auto& o, const auto& s) {
                     return s.apply(o, next, end);
                 },
-                [](const auto& /*unused*/, const auto& /*unused*/) {
-                    throw std::runtime_error("selector and json object don't match");
+                [](const auto& o, const auto& s) {
+                    throw std::runtime_error(std::string("selector and json object don't match: ") + s.name() + ", " + o.name());
                 }
             }, inner);
             // auto visitor = [&json](auto& selector) {
@@ -400,8 +431,8 @@ namespace selectors {
     JsonNode apply_selector(const AnyRootSelector& /*unused*/, const auto& json, auto next, auto end)  {
         return apply_selector(json, next, end);
     }
-    JsonNode apply_selector(const auto& /*unused*/, const auto& /*unused*/, auto /*unused*/, auto /*unused*/) {
-        throw std::runtime_error("selector does not match json item");
+    JsonNode apply_selector(const auto& s, const auto& j, auto /*unused*/, auto /*unused*/) {
+        throw std::runtime_error(std::string("selector and json object don't match: ") + s.name() + ", " + j.name());
     }
 
     JsonNode apply_selector(const JsonNode& json, auto next, auto end) {
