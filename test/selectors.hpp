@@ -11,7 +11,8 @@ using namespace json;
 
 TEST(SelectorApplication, KeySelectorChain) {
     {
-        Json json = parse_json(R"#({ "key1": { "key3": 3, "key4": 4 }, "key2": 2 })#");
+        Json json =
+            parse_json(R"#({ "key1": { "key3": 3, "key4": 4 }, "key2": 2 })#");
         Selectors selectors = parse_selectors(R"#("key1"."key3")#");
         Json result = selectors.apply(json);
         Json expected = parse_json(R"#(3)#");
