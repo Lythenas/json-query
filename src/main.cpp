@@ -7,6 +7,7 @@
 
 #include "errors.hpp"
 #include "json/json.hpp"
+#include "selectors/parser.hpp"
 #include "selectors/selectors.hpp"
 
 using json::Json;
@@ -121,6 +122,8 @@ int main(int argc, char* argv[]) {
         std::cerr << e.what() << std::endl;
     } catch (const FailedToParseSelectorException& e) {
         std::cerr << "Failed to parse selector: " << e.what() << std::endl;
+    } catch (const selectors::SyntaxError& e) {
+        e.pretty_print(std::cerr, args.selector);
     }
 
     return 0;

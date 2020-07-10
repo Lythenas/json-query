@@ -1,6 +1,7 @@
 #ifndef JSON_QUERY_SELECTOR_PARSER_HPP
 #define JSON_QUERY_SELECTOR_PARSER_HPP
 
+#include <sstream>
 #ifndef NDEBUG
 #undef BOOST_SPIRIT_DEBUG
 #endif
@@ -19,6 +20,49 @@ namespace selectors {
 namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 
+class ParseError : public std::exception {};
+class SyntaxError : public ParseError {
+   private:
+    std::size_t error_pos;
+    std::string expected;
+
+    std::string what_;
+
+   public:
+    template <typename Iterator>
+    SyntaxError(Iterator first, Iterator last, Iterator error_pos,
+                const boost::spirit::info& what)
+        : error_pos(std::distance(first, error_pos)) {
+        std::stringstream ss;
+        ss << what;
+        expected = ss.str();
+
+        what_ = "Expected " + expected + " but got \"" +
+                std::string(error_pos, last) + "\"";
+    }
+
+    // to make this a proper std::exception
+    // but not used by me (except maybe in tests)
+    virtual const char* what() const noexcept override { return what_.c_str(); }
+
+    template <typename Out>
+    void pretty_print(Out& o, const std::string& input) const {
+        o << "Error in selector:\n"
+          << "\033[32m" << input.substr(0, error_pos) << "\033[31m";
+
+        if (error_pos == input.size()) {
+            o << "\033[7m"
+              << " ";
+        } else {
+            o << input.substr(error_pos);
+        }
+
+        o << "\033[0m\n"
+          << std::string(error_pos, ' ') << "^ expected \033[32m" << expected
+          << "\033[0m\n";
+    }
+};
+
 class FailedToParseSelectorException : public std::exception {
    public:
     FailedToParseSelectorException(const char* reason) : reason(reason) {}
@@ -32,13 +76,19 @@ class FailedToParseSelectorException : public std::exception {
 template <typename Iterator>
 struct selectors_grammar
     : qi::grammar<Iterator, Selectors(), ascii::space_type> {
-    selectors_grammar() : selectors_grammar::base_type(root) {
+    selectors_grammar() : selectors_grammar::base_type(root, "selectors") {
         using boost::phoenix::construct;
         using boost::phoenix::new_;
+        using boost::phoenix::throw_;
         using boost::phoenix::val;
         using qi::_1;
         using qi::_2;
+        using qi::_3;
+        using qi::_4;
         using qi::_val;
+        using qi::fail;
+        using qi::on_error;
+        using qi::rethrow;
         using qi::rule;
 
         root = (root_item % ',')[_val = construct<Selectors>(_1)];
@@ -47,23 +97,27 @@ struct selectors_grammar
         raw_root_item = basic >> *(compound);
 
         compound = -qi::lit('.') >> basic;
-        basic = (any_root | key | index | range | property | truncate |
-                 filter)[_val = construct<SelectorNode>(_1)];
+        basic = index_or_range | (any_root | key | property | truncate |
+                                  filter)[_val = construct<SelectorNode>(_1)];
 
-        filter = ('|' >> key)[_val = construct<FilterSelector>(_1)];
-        truncate = qi::lit('!')[_val = construct<TruncateSelector>()];
-        property = ('{' >> (quoted_string % ',') >>
+        filter = ('|' > key)[_val = construct<FilterSelector>(_1)];
+        truncate =
+            (qi::lit('!') > qi::eoi)[_val = construct<TruncateSelector>()];
+        property = ('{' > (quoted_string % ',') >
                     '}')[_val = construct<PropertySelector>(_1)];
+
         inner_range = (-qi::int_ >> ':' >>
                        -qi::int_)[_val = construct<RangeSelector>(_1, _2)];
-        range =
-            ('[' >> -inner_range >> ']')[_val = construct<RangeSelector>(_1)];
-        index = ('[' >> qi::int_ >> ']')[_val = construct<IndexSelector>(_1)];
+        range = -inner_range[_val = construct<RangeSelector>(_1)];
+        index = qi::int_[_val = construct<IndexSelector>(_1)];
+        index_or_range =
+            ('[' > (index | range) > ']')[_val = construct<SelectorNode>(_1)];
+
         any_root = qi::lit('.')[_val = construct<AnyRootSelector>()];
         key = quoted_string[_val = construct<KeySelector>(_1)];
 
         quoted_string =
-            qi::no_skip[qi::lexeme['"' >> *(ascii::char_ - '"') >> '"']];
+            qi::no_skip[qi::lexeme['"' > *(ascii::char_ - '"') > '"']];
 
         // set names and add debugging (ifndef NDEBUG)
         BOOST_SPIRIT_DEBUG_NODE(root);
@@ -83,6 +137,8 @@ struct selectors_grammar
         BOOST_SPIRIT_DEBUG_NODE(any_root);
         BOOST_SPIRIT_DEBUG_NODE(key);
         BOOST_SPIRIT_DEBUG_NODE(quoted_string);
+
+        on_error<fail>(root, throw_(construct<SyntaxError>(_1, _2, _3, _4)));
     }
 
     qi::rule<Iterator, Selectors(), ascii::space_type> root;
@@ -92,6 +148,7 @@ struct selectors_grammar
 
     qi::rule<Iterator, SelectorNode(), ascii::space_type> compound;
     qi::rule<Iterator, SelectorNode(), ascii::space_type> basic;
+    qi::rule<Iterator, SelectorNode(), ascii::space_type> index_or_range;
 
     qi::rule<Iterator, FilterSelector(), ascii::space_type> filter;
     qi::rule<Iterator, TruncateSelector(), ascii::space_type> truncate;
