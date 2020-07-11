@@ -17,8 +17,17 @@ namespace ranges = std::ranges;
 class SelectorNode;
 
 class Selector {
-   public:
-    // JsonNode apply(const JsonNode& json) const;
+};
+
+// Used to detect wrong parsing because the default constructor of the
+// first variant is sometimes used.
+class InvalidSelector : public Selector {
+    public:
+        static const char* name() { return "Invalid"; }
+        friend std::ostream& operator<<(std::ostream& o,
+                const InvalidSelector& /*unused*/) {
+            return o << "InvalidSelector";
+        }
 };
 
 /**
@@ -295,20 +304,18 @@ class TruncateSelector : public Selector {
  */
 class SelectorNode : public Selector {
     using InnerVariant =
-        boost::variant<KeySelector, IndexSelector, RangeSelector,
-                       PropertySelector, FilterSelector, AnyRootSelector,
-                       TruncateSelector>;
+        boost::variant<InvalidSelector, AnyRootSelector, KeySelector, IndexSelector, RangeSelector,
+                       PropertySelector, FilterSelector, TruncateSelector>;
 
    public:
-    SelectorNode() = default;
-    SelectorNode(AnyRootSelector inner) : inner(inner) {}
-    SelectorNode(KeySelector inner) : inner(inner) {}
-    SelectorNode(IndexSelector inner) : inner(inner) {}
-    SelectorNode(RangeSelector inner) : inner(inner) {}
-    SelectorNode(PropertySelector inner) : inner(inner) {}
-    SelectorNode(FilterSelector inner) : inner(inner) {}
-    SelectorNode(TruncateSelector inner) : inner(inner) {}
-    SelectorNode(InnerVariant inner) : inner(std::move(inner)) {}
+    explicit SelectorNode() = default;
+    explicit SelectorNode(AnyRootSelector inner) : inner(inner) {}
+    explicit SelectorNode(KeySelector inner) : inner(inner) {}
+    explicit SelectorNode(IndexSelector inner) : inner(inner) {}
+    explicit SelectorNode(RangeSelector inner) : inner(inner) {}
+    explicit SelectorNode(PropertySelector inner) : inner(inner) {}
+    explicit SelectorNode(FilterSelector inner) : inner(inner) {}
+    explicit SelectorNode(TruncateSelector inner) : inner(inner) {}
 
     const char* name() const {
         return boost::apply_visitor([](const auto& x) { return x.name(); },
@@ -333,10 +340,6 @@ class SelectorNode : public Selector {
                         s.name() + ", " + o.name());
                 }},
             inner);
-        // auto visitor = [&json](auto& selector) {
-        //     return selector.apply(json);
-        // };
-        // return boost::apply_visitor(visitor, inner);
     }
 
     friend std::ostream& operator<<(std::ostream& o, const SelectorNode& self) {

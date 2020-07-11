@@ -81,6 +81,7 @@ struct selectors_grammar
         using boost::phoenix::new_;
         using boost::phoenix::throw_;
         using boost::phoenix::val;
+        using boost::phoenix::if_;
         using qi::_1;
         using qi::_2;
         using qi::_3;
@@ -88,7 +89,7 @@ struct selectors_grammar
         using qi::_val;
         using qi::fail;
         using qi::on_error;
-        using qi::rethrow;
+        using qi::on_success;
         using qi::rule;
 
         root = (root_item % ',')[_val = construct<Selectors>(_1)];
@@ -97,21 +98,32 @@ struct selectors_grammar
         raw_root_item = basic >> *(compound);
 
         compound = -qi::lit('.') >> basic;
-        basic = index_or_range | (any_root | key | property | truncate |
-                                  filter)[_val = construct<SelectorNode>(_1)];
+        basic = index_or_range[_val = _1]
+            | any_root[_val = construct<SelectorNode>(_1)]
+            | key[_val = construct<SelectorNode>(_1)]
+            | property[_val = construct<SelectorNode>(_1)]
+            | truncate[_val = construct<SelectorNode>(_1)]
+            | filter[_val = construct<SelectorNode>(_1)];
 
         filter = ('|' > key)[_val = construct<FilterSelector>(_1)];
-        truncate =
-            (qi::lit('!') > qi::eoi)[_val = construct<TruncateSelector>()];
+        truncate = ('!' > qi::eoi)[_val = construct<TruncateSelector>()];
         property = ('{' > (quoted_string % ',') >
                     '}')[_val = construct<PropertySelector>(_1)];
 
-        inner_range = (-qi::int_ >> ':' >>
-                       -qi::int_)[_val = construct<RangeSelector>(_1, _2)];
-        range = -inner_range[_val = construct<RangeSelector>(_1)];
-        index = qi::int_[_val = construct<IndexSelector>(_1)];
-        index_or_range =
-            ('[' > (index | range) > ']')[_val = construct<SelectorNode>(_1)];
+        // no backtracking between index and range parsing
+        index_or_range = qi::lit('[')
+            > (-qi::int_ > -qi::char_(':') > -qi::int_)[
+                // it's only an index if we got an int and no colon
+                if_(_1 && !_2)[
+                    _val = construct<SelectorNode>(construct<IndexSelector>(*_1))
+                // otherwise it's a (possibly empty) range
+                // NOTE: if the second int was matched the colon was also
+                // matched or there is a parse error
+                ].else_[
+                    _val = construct<SelectorNode>(construct<RangeSelector>(_1, _3))
+                ]
+            ]
+            > qi::lit(']');
 
         any_root = qi::lit('.')[_val = construct<AnyRootSelector>()];
         key = quoted_string[_val = construct<KeySelector>(_1)];
