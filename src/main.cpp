@@ -9,6 +9,7 @@
 #include "json/json.hpp"
 #include "selectors/parser.hpp"
 #include "selectors/selectors.hpp"
+#include "cli.hpp"
 
 using json::Json;
 using json::parse_json;
@@ -16,16 +17,11 @@ using selectors::FailedToParseSelectorException;
 using selectors::parse_selectors;
 using selectors::Selectors;
 
-struct Arguments {
-    bool help = false;
-    std::string selector;
-    std::optional<std::string> file;
-};
-
-void print_arguments(const Arguments& args) {
+void print_arguments(const cli::Arguments& args) {
     std::cerr << "=== DEBUG ===" << std::endl;
     std::cerr << "Arguments {" << std::endl
               << "\thelp = " << args.help << "," << std::endl
+              << "\tonly_parse = " << args.only_parse << "," << std::endl
               << "\tselector = \"" << args.selector << "\"," << std::endl
               << "\tfile = ";
     if (args.file) {
@@ -35,30 +31,6 @@ void print_arguments(const Arguments& args) {
     }
     std::cerr << "," << std::endl << "}" << std::endl;
     std::cerr << "=== DEBUG END ===" << std::endl;
-}
-
-/**
- * Parses the arguemtns form argc and argv into and Arguments struct.
- */
-Arguments parse_arguments(int argc, char* argv[]) {
-    Arguments args;
-
-    // no args or help flag display help
-    if (argc == 1 || strcmp(argv[1], "-h") == 0 ||
-        strcmp(argv[1], "--help") == 0) {
-        args.help = true;
-        return args;
-    }
-
-    if (argc >= 2) {
-        args.selector = std::string(argv[1]);
-    }
-
-    if (argc >= 3) {
-        args.file = std::string(argv[2]);
-    }
-
-    return args;
 }
 
 /**
@@ -86,23 +58,19 @@ std::string read_input(const std::optional<std::string>& file) {
 }
 
 int main(int argc, char* argv[]) {
-    const auto args = parse_arguments(argc, argv);
-
-    if (args.help) {
-        std::cerr
-            << "Usage: " << argv[0] << " [-h|--help] <selectors> [file]"
-            << std::endl
-            << std::endl
-            << "ARGS:" << std::endl
-            << "\t<selectors>\tQuery selectors to apply" << std::endl
-            << "\t<file>\t\tJson file to use (if not given stdin will be used)"
-            << std::endl;
-        return 0;
-    }
-
-    // print_arguments(args);
-
+    cli::Arguments args;
     try {
+        args = cli::parse_arguments(argc, argv);
+
+        if (args.help) {
+            cli::print_help(argv[0]);
+            return 0;
+        }
+
+        if (args.debug) {
+            print_arguments(args);
+        }
+
         std::string content = read_input(args.file);
 
         Json json = parse_json(content.begin(), content.end());
@@ -110,11 +78,15 @@ int main(int argc, char* argv[]) {
         Selectors selectors =
             parse_selectors(args.selector.begin(), args.selector.end());
 
-        // std::cerr << "=== DEBUG ===" << std::endl;
-        // std::cerr << "content:" << std::endl << json << std::endl;
-        // std::cerr << "selectors:" << std::endl << selectors << std::endl;
-        // std::cerr << "=== DEBUG END ===" << std::endl;
+        if (args.debug) {
+            std::cerr << "json content:\n" << json << "\n";
+            std::cerr << "selectors:\n" << selectors << "\n";
+        }
 
+        if (args.only_parse) {
+            std::cerr << "Quitting after parse because of --only-parse flag.\n";
+            return 0;
+        }
         Json output = selectors.apply(json);
 
         std::cout << output;
@@ -124,6 +96,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to parse selector: " << e.what() << std::endl;
     } catch (const selectors::SyntaxError& e) {
         e.pretty_print(std::cerr, args.selector);
+    } catch (const cli::CliException&) {
+        return 1;
     }
 
     return 0;

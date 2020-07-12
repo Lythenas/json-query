@@ -11,13 +11,8 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 
 include(FetchContent)
 
-find_package(Boost 1.72 REQUIRED)
-if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIRS})
-    message("-- Boost found: ${Boost_VERSION_STRING}")
-else()
-    message(FATAL_ERROR "Boost not found!")
-endif()
+find_package(Boost 1.72 COMPONENTS program_options REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
 
 include_directories(src)
 
