@@ -13,7 +13,6 @@
 
 using json::Json;
 using json::parse_json;
-using selectors::FailedToParseSelectorException;
 using selectors::parse_selectors;
 using selectors::Selectors;
 
@@ -53,12 +52,13 @@ std::string read_input(const std::optional<std::string>& file) {
                                std::istreambuf_iterator<char>());
         }
     } catch (std::ifstream::failure&) {
-        throw InputFileException();
+        throw errors::InputFileException();
     }
 }
 
 int main(int argc, char* argv[]) {
     cli::Arguments args;
+    std::string content;
     try {
         args = cli::parse_arguments(argc, argv);
 
@@ -71,9 +71,9 @@ int main(int argc, char* argv[]) {
             print_arguments(args);
         }
 
-        std::string content = read_input(args.file);
+        content = read_input(args.file);
 
-        Json json = parse_json(content.begin(), content.end());
+        Json json = parse_json(content);
 
         Selectors selectors =
             parse_selectors(args.selector.begin(), args.selector.end());
@@ -90,12 +90,14 @@ int main(int argc, char* argv[]) {
         Json output = selectors.apply(json);
 
         std::cout << output;
-    } catch (const InputFileException& e) {
+    } catch (const errors::InputFileException& e) {
         std::cerr << e.what() << std::endl;
-    } catch (const FailedToParseSelectorException& e) {
+    } catch (const selectors::FailedToParseSelectorException& e) {
         std::cerr << "Failed to parse selector: " << e.what() << std::endl;
     } catch (const selectors::SyntaxError& e) {
         e.pretty_print(std::cerr, args.selector);
+    } catch (const json::SyntaxError& e) {
+        e.pretty_print(std::cerr);
     } catch (const cli::CliException&) {
         return 1;
     }
