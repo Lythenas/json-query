@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <catch2/catch.hpp>
 
 #include <boost/none.hpp>
 #include <string>
@@ -14,118 +14,118 @@ T single_node(const std::string& s) {
     return parse_json(s.begin(), s.end()).get().as<T>();
 }
 
-TEST(JsonParser, Number_Int) {
+TEST_CASE("integers are parserd", "[json]") {
     {
         std::string s = R"#(5)#";
         auto number = single_node<JsonNumber>(s);
-        EXPECT_EQ(number, JsonNumber("5"));
+        REQUIRE(number == JsonNumber("5"));
     }
     {
         std::string s = R"#(-105)#";
         auto number = single_node<JsonNumber>(s);
-        EXPECT_EQ(number, JsonNumber("-105"));
+        REQUIRE(number == JsonNumber("-105"));
     }
 }
 
-TEST(JsonParser, Number_Float) {
+TEST_CASE("floats are parsed", "[json]") {
     {
         std::string s = R"#(5.25)#";
         auto number = single_node<JsonNumber>(s);
-        EXPECT_EQ(number, JsonNumber("5.25"));
+        REQUIRE(number == JsonNumber("5.25"));
     }
     {
         std::string s = R"#(-0.000125)#";
         auto number = single_node<JsonNumber>(s);
-        EXPECT_EQ(number, JsonNumber("-0.000125"));
+        REQUIRE(number == JsonNumber("-0.000125"));
     }
 }
 
-TEST(JsonParser, Number_Int_Exp) {
+TEST_CASE("ints with exponents are parsed", "[json]") {
     {
         std::string s = R"#(5e100)#";
         auto number = single_node<JsonNumber>(s);
-        EXPECT_EQ(number, JsonNumber("5e100"));
+        REQUIRE(number == JsonNumber("5e100"));
     }
 }
 
-TEST(JsonParser, Number_Float_Exp) {
+TEST_CASE("floats with exponents are parsed", "[json]") {
     {
         std::string s = R"#(5.25e100)#";
         auto number = single_node<JsonNumber>(s);
-        EXPECT_EQ(number, JsonNumber("5.25e100"));
+        REQUIRE(number == JsonNumber("5.25e100"));
     }
 }
 
-TEST(JsonParser, Literal) {
+TEST_CASE("literals are parsed", "[json]") {
     {
         std::string s = R"#(true)#";
         auto lit = single_node<JsonLiteral>(s);
-        EXPECT_EQ(lit, JsonLiteral(JSON_TRUE));
+        REQUIRE(lit == JsonLiteral(JSON_TRUE));
     }
     {
         std::string s = R"#(false)#";
         auto lit = single_node<JsonLiteral>(s);
-        EXPECT_EQ(lit, JsonLiteral(JSON_FALSE));
+        REQUIRE(lit == JsonLiteral(JSON_FALSE));
     }
     {
         std::string s = R"#(null)#";
         auto lit = single_node<JsonLiteral>(s);
-        EXPECT_EQ(lit, JsonLiteral(JSON_NULL));
+        REQUIRE(lit == JsonLiteral(JSON_NULL));
     }
 }
 
-TEST(JsonParser, String) {
+TEST_CASE("strings are parsed", "[json]") {
     {
         std::string s = R"#("Hello, World!")#";
         auto str = single_node<JsonString>(s);
-        EXPECT_EQ(str, JsonString("Hello, World!"));
+        REQUIRE(str == JsonString("Hello, World!"));
     }
     {
         std::string s = R"#("Hello, World! \" \\ \n \b \f \r \t \u22")#";
         auto str = single_node<JsonString>(s);
-        EXPECT_EQ(
-            str,
+        REQUIRE(
+            str ==
             JsonString("Hello, World! \\\" \\\\ \\n \\b \\f \\r \\t \\u22"));
     }
 }
 
-TEST(JsonParser, Array) {
+TEST_CASE("arrays of ints are parsed", "[json]") {
     {
         std::string s = R"#([])#";
         auto arr = single_node<JsonArray>(s);
-        EXPECT_EQ(arr, JsonArray());
+        REQUIRE(arr == JsonArray());
     }
     {
         std::string s = R"#([1])#";
         auto arr = single_node<JsonArray>(s);
-        EXPECT_EQ(arr, JsonArray(std::vector{JsonNode(JsonNumber("1"))}));
+        REQUIRE(arr == JsonArray(std::vector{JsonNode(JsonNumber("1"))}));
     }
     {
         std::string s = R"#([1, 2, 3])#";
         auto arr = single_node<JsonArray>(s);
-        EXPECT_EQ(arr, JsonArray(std::vector{JsonNode(JsonNumber("1")),
+        REQUIRE(arr == JsonArray(std::vector{JsonNode(JsonNumber("1")),
                                              JsonNode(JsonNumber("2")),
                                              JsonNode(JsonNumber("3"))}));
     }
 }
 
-TEST(JsonParser, Object) {
+TEST_CASE("objects with ints are parsed", "[json]") {
     {
         std::string s = R"#({})#";
         auto obj = single_node<JsonObject>(s);
-        EXPECT_EQ(obj, JsonObject());
+        REQUIRE(obj == JsonObject());
     }
     {
         std::string s = R"#({ "key1": 5 })#";
         auto obj = single_node<JsonObject>(s);
-        EXPECT_EQ(obj, JsonObject(std::vector{std::make_pair(
+        REQUIRE(obj == JsonObject(std::vector{std::make_pair(
                            std::string{"key1"}, JsonNode(JsonNumber("5")))}));
     }
     {
         std::string s = R"#({ "key1": 5, "key2": 7 })#";
         auto obj = single_node<JsonObject>(s);
-        EXPECT_EQ(
-            obj,
+        REQUIRE(
+            obj ==
             JsonObject(std::vector{
                 std::make_pair(std::string{"key1"}, JsonNode(JsonNumber("5"))),
                 std::make_pair(std::string{"key2"},
@@ -133,13 +133,13 @@ TEST(JsonParser, Object) {
     }
 }
 
-TEST(JsonParser, Nested) {
+TEST_CASE("nested objects and arrays are parsed", "[json]") {
     {
         std::string s =
             R"#({ "array": [ { "id": 1, "value": "x" }, { "id": 2, "value": "y" } ] })#";
         auto obj = single_node<JsonObject>(s);
-        EXPECT_EQ(
-            obj,
+        REQUIRE(
+            obj ==
             JsonObject(std::vector{std::make_pair(
                 std::string{"array"},
                 JsonNode(JsonArray(std::vector{
@@ -162,8 +162,8 @@ TEST(JsonParser, Nested) {
     ]
 })#";
         auto obj = single_node<JsonObject>(s);
-        EXPECT_EQ(
-            obj,
+        REQUIRE(
+            obj ==
             JsonObject(std::vector{std::make_pair(
                 std::string{"array"},
                 JsonNode(JsonArray(std::vector{

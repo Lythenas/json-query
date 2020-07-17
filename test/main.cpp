@@ -1,9 +1,5 @@
-#include <gtest/gtest.h>
+#define CATCH_CONFIG_MAIN
+#include <catch2/catch.hpp>
 
 #include "json.hpp"
 #include "selectors.hpp"
-
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
