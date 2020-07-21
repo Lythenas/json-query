@@ -10,7 +10,7 @@ using namespace json;
 
 template <typename T>
 T single_node(const std::string& s) {
-    return parse_json(s.begin(), s.end()).get().as<T>();
+    return parse_json(s).get().as<T>();
 }
 
 TEST_CASE("integers are parserd", "[json]") {
