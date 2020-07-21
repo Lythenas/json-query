@@ -3,7 +3,6 @@
 #include <string>
 
 #include "json/json.hpp"
-#include "selectors/parser.hpp"
 #include "selectors/selectors.hpp"
 
 #include <boost/optional/optional_io.hpp>

@@ -152,7 +152,12 @@ Selectors parse_selectors(Iterator first, Iterator last) {
     return selectors;
 }
 
-Selectors parse_selectors(const std::string&& s) {
+/**
+ * Parse a string into a selector or throw an exception.
+ *
+ * Throws either FailedToParseSelectorException or SyntaxError.
+ */
+Selectors parse_selectors(const std::string& s) {
     return parse_selectors(s.begin(), s.end());
 }
 
