@@ -11,34 +11,45 @@ See [jql](https://github.com/yamafaktory/jql#%EF%B8%8F-usage) for examples.
 ## Building
 
 ```
-cd build
-./new_cmake.sh Debug # or Release (and optionally specify the c and c++ compiler)
 make
 ```
 
 ## Running
 
 ```
-cd build
-make jsonquery_run
-./src/jsonquery_run --help
+make jsonquery
+./jsonquery --help
 ```
 
 ## Tests
 
 ```
-cd build
+make check
+```
+
+or
+
+```
 make jsonquery_test
-./test/jsonquery_test
+./jsonquery_test
+```
+
+There is also a fuzzing test
+
+```
+make clean
+make FUZZ=1 jsonquery_fuzz
+./jsonquery_fuzz
 ```
 
 ## Benchmarks
 
 (incomplete)
 
-```
-cd build
-make jsonquery_bench
-./bench/jsonquery_bench
-```
+## Dependencies
 
+- boost (tests with version 1.72)
+
+For testing:
+
+- [Catch2](https://github.com/catchorg/Catch2) (header only, included in `test/` directory)
