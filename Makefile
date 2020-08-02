@@ -5,7 +5,7 @@ RM=rm -f
 WARNINGS=-Wall -Wextra -Wpedantic
 DEBUG=-g
 
-CXXFLAGS=$(WARNINGS) $(DEBUG) -std=c++2a -I./src
+CXXFLAGS=$(WARNINGS) $(DEBUG) -std=c++2a -I./src/ -I./includes/
 LDFLAGS=$(DEBUG)
 LDLIBS=
 
@@ -47,12 +47,8 @@ jsonquery_test: test/main.o lib.a
 
 # fuzzer test
 jsonquery_fuzz: test/test_fuzzer.cpp lib.a
-	@test $(FUZZ) || echo -e "NOTE: Fuzzing only works with clang and with FUZZ=1 when compiling ALL targets (you should run make clean if you built without fuzzing before)! But with FUZZ=1 you can't make the other binaries.\n"
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) \
-	    -fsanitize=fuzzer,address \
-	    -fprofile-instr-generate \
-	    -fcoverage-mapping \
-	    -o $@ $^ $(LDLIBS)
+	@test $(FUZZ) || { echo -e "Fuzzing only works with clang and with FUZZ=1 when compiling ALL targets (you should run \"make clean\" if you previously built without fuzzing)! But with FUZZ=1 you can't make the other binaries.\n" && exit 1; }
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
@@ -64,6 +60,7 @@ jsonquery_fuzz: test/test_fuzzer.cpp lib.a
 	$(RM) ./.depend
 	$(CXX) $(CXXFLAGS) -MM $^ > ./.depend;
 
+# CLEAN tasks
 clean:
 	$(RM) $(OBJS_ALL) lib.a
 
@@ -73,6 +70,6 @@ distclean: clean
 cleanall: distclean
 	$(RM) jsonquery jsonquery_test jsonquery_fuzz
 
-.PHONY: clean distclean all test
+.PHONY: clean distclean cleanall all check
 
 include .depend
