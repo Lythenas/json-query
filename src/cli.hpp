@@ -42,7 +42,7 @@ void print_help(const char* name) {
  * The options have to come before the positional arguments.
  */
 Arguments parse_arguments(int argc, char** argv) {
-    Arguments args;
+    Arguments args{};
 
     if (argc == 1) {
         args.help = true;

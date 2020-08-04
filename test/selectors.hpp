@@ -168,6 +168,36 @@ TEST_CASE("apply truncate selector", "[selectors]") {
             REQUIRE(result == json);
         }
 }
+TEST_CASE("apply flatten selector", "[selectors]") {
+    {
+        Json json = parse_json(R"#([[1, 2], [3, 4], [5, 6]])#");
+        Json expected = parse_json(R"#([1, 2, 3, 4, 5, 6])#");
+        Selectors selectors = parse_selectors(R"#(..)#");
+        Json result = selectors.apply(json);
+        REQUIRE(result == expected);
+    }
+    {
+        Json json = parse_json(R"#({"key": [[1, 2], [3, 4], [5, 6]] })#");
+        Json expected = parse_json(R"#([1, 2, 3, 4, 5, 6])#");
+        Selectors selectors = parse_selectors(R"#("key"..)#");
+        Json result = selectors.apply(json);
+        REQUIRE(result == expected);
+    }
+    {
+        Json json = parse_json(R"#([{"key": [1, 2]}, {"key": [3, 4]}, {"key": [5, 6]}])#");
+        Json expected = parse_json(R"#([1, 2, 3, 4, 5, 6])#");
+        Selectors selectors = parse_selectors(R"#(.."key")#");
+        Json result = selectors.apply(json);
+        REQUIRE(result == expected);
+    }
+    {
+        Json json = parse_json(R"#({"key1": [{"key2": [1, 2]}, {"key2": [3, 4]}, {"key2": [5, 6]}] })#");
+        Json expected = parse_json(R"#([1, 2, 3, 4, 5, 6])#");
+        Selectors selectors = parse_selectors(R"#("key1".."key2")#");
+        Json result = selectors.apply(json);
+        REQUIRE(result == expected);
+    }
+}
 
 TEST_CASE("apply multiple root selectors", "[selectors]") {
         Json json = parse_json(R"#({ "key1": 1, "key2": 2 })#");
@@ -328,6 +358,22 @@ TEST_CASE("truncate selector parses", "[selectors]") {
         std::string s = R"#(!)#";
         single_selector<TruncateSelector>(s);
         // no content
+    }
+}
+
+TEST_CASE("flatten selector parses", "[selectors]") {
+    {
+        std::string s = R"#(..)#";
+        single_selector<FlattenSelector>(s);
+        // no content
+    }
+    {
+        std::string s = R"#("key1".."key2")#";
+        auto selectors = single_chain(s);
+        REQUIRE(selectors.size() == 3);
+        REQUIRE(selectors[0].as<KeySelector>().get() == "key1");
+        selectors[1].as<FlattenSelector>(); // exception if wrong selector type
+        REQUIRE(selectors[2].as<KeySelector>().get() == "key2");
     }
 }
 

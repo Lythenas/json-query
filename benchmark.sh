@@ -60,9 +60,9 @@ append_result "generated"
 hyperfine \
     --warmup 5 \
     --export-markdown benchmarks/generated.md \
-    "./jsonquery '[:].\"tags\"' test/generated.json" \
-    "jql '[:]|\"tags\"' test/generated.json" \
-    "jq '[.[] | .tags]' test/generated.json"
+    "./jsonquery '..\"tags\"' test/generated.json" \
+    "jql '..[:]|\"tags\"' test/generated.json" \
+    "jq '[.[] | .tags[]]' test/generated.json"
 
 append_result "generated"
 

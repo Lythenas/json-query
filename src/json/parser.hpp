@@ -1,12 +1,12 @@
 #ifndef JSON_QUERY_JSON_PARSER_HPP
 #define JSON_QUERY_JSON_PARSER_HPP
 
-#include <boost/spirit/home/qi/directive/lexeme.hpp>
-#include <boost/spirit/home/support/iterators/multi_pass.hpp>
-#ifndef NDEBUG
-#undef BOOST_SPIRIT_DEBUG
+#ifdef TRACE
+#define BOOST_SPIRIT_DEBUG
 #endif
 
+#include <boost/spirit/home/qi/directive/lexeme.hpp>
+#include <boost/spirit/home/support/iterators/multi_pass.hpp>
 #include <boost/phoenix.hpp>
 #include <boost/spirit/home/qi/nonterminal/debug_handler.hpp>
 #include <boost/spirit/include/qi.hpp>

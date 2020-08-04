@@ -18,6 +18,10 @@ ifdef RELEASE
 CXXFLAGS += -O3
 endif
 
+ifdef TRACE
+CXXFLAGS += -DTRACE
+endif
+
 SRCS_LIB:=$(filter-out src/main.cpp,$(shell find src -type f -name '*.cpp'))
 OBJS_LIB:=$(patsubst %.cpp,%.o,$(SRCS_LIB))
 

@@ -2,8 +2,8 @@
 #define JSON_QUERY_SELECTOR_PARSER_HPP
 
 #include <sstream>
-#ifndef NDEBUG
-#undef BOOST_SPIRIT_DEBUG
+#ifdef TRACE
+#define BOOST_SPIRIT_DEBUG
 #endif
 
 #include <boost/phoenix.hpp>
@@ -59,14 +59,18 @@ struct selectors_grammar
         root_item = raw_root_item[_val = construct<RootSelector>(_1)];
         raw_root_item = basic >> *(compound);
 
-        compound = -qi::lit('.') >> basic;
+        // flatten needs to be handles specially because a single dot already
+        // means something else
+        compound = flatten[_val = construct<SelectorNode>(_1)] | (-qi::lit('.') >> basic)[_val = _1];
         basic = index_or_range[_val = _1]
+            | flatten[_val = construct<SelectorNode>(_1)] // has to be before any_root
             | any_root[_val = construct<SelectorNode>(_1)]
             | key[_val = construct<SelectorNode>(_1)]
             | property[_val = construct<SelectorNode>(_1)]
             | truncate[_val = construct<SelectorNode>(_1)]
             | filter[_val = construct<SelectorNode>(_1)];
 
+        flatten = qi::lit("..")[_val = construct<FlattenSelector>()];
         filter = ('|' > key)[_val = construct<FilterSelector>(_1)];
         truncate = ('!' > qi::eoi)[_val = construct<TruncateSelector>()];
         property = ('{' > (quoted_string % ',') >
@@ -102,12 +106,11 @@ struct selectors_grammar
         BOOST_SPIRIT_DEBUG_NODE(compound);
         BOOST_SPIRIT_DEBUG_NODE(basic);
 
+        BOOST_SPIRIT_DEBUG_NODE(flatten);
         BOOST_SPIRIT_DEBUG_NODE(filter);
         BOOST_SPIRIT_DEBUG_NODE(truncate);
         BOOST_SPIRIT_DEBUG_NODE(property);
-        BOOST_SPIRIT_DEBUG_NODE(inner_range);
-        BOOST_SPIRIT_DEBUG_NODE(range);
-        BOOST_SPIRIT_DEBUG_NODE(index);
+        BOOST_SPIRIT_DEBUG_NODE(index_or_range);
         BOOST_SPIRIT_DEBUG_NODE(any_root);
         BOOST_SPIRIT_DEBUG_NODE(key);
         BOOST_SPIRIT_DEBUG_NODE(quoted_string);
@@ -124,12 +127,10 @@ struct selectors_grammar
     qi::rule<Iterator, SelectorNode(), ascii::space_type> basic;
     qi::rule<Iterator, SelectorNode(), ascii::space_type> index_or_range;
 
+    qi::rule<Iterator, FlattenSelector(), ascii::space_type> flatten;
     qi::rule<Iterator, FilterSelector(), ascii::space_type> filter;
     qi::rule<Iterator, TruncateSelector(), ascii::space_type> truncate;
     qi::rule<Iterator, PropertySelector(), ascii::space_type> property;
-    qi::rule<Iterator, RangeSelector(), ascii::space_type> inner_range;
-    qi::rule<Iterator, RangeSelector(), ascii::space_type> range;
-    qi::rule<Iterator, IndexSelector(), ascii::space_type> index;
     qi::rule<Iterator, AnyRootSelector()> any_root;
     qi::rule<Iterator, KeySelector()> key;
 

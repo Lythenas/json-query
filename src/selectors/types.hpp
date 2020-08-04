@@ -298,6 +298,37 @@ class TruncateSelector : public Selector {
 };
 
 /**
+ * Selector to flatten json arrays.
+ *
+ * Identified by the prefix `..`.
+ *
+ * When applied will flatten one level of arrays.
+ *
+ * E.g.
+ *
+ * ```json
+ * [ [1, 2], [3, 4], [5, 6] ]
+ * ```
+ *
+ * turns into
+ *
+ * ```json
+ * [1, 2, 3, 4, 5, 6]
+ * ```
+ */
+class FlattenSelector : public Selector {
+    public:
+        FlattenSelector() = default;
+
+        static const char* name() { return "Flatten"; }
+
+        friend std::ostream& operator<<(std::ostream& o,
+                                        const FlattenSelector& /*unused*/) {
+            return o << "FlattenSelector";
+        }
+};
+
+/**
  * Unifying wrapper for all selector kinds.
  *
  * This avoids having to allocate each constructor separately on the heap.
@@ -305,7 +336,7 @@ class TruncateSelector : public Selector {
 class SelectorNode : public Selector {
     using InnerVariant =
         boost::variant<InvalidSelector, AnyRootSelector, KeySelector, IndexSelector, RangeSelector,
-                       PropertySelector, FilterSelector, TruncateSelector>;
+                       PropertySelector, FilterSelector, TruncateSelector, FlattenSelector>;
 
    public:
     explicit SelectorNode() = default;
@@ -316,6 +347,7 @@ class SelectorNode : public Selector {
     explicit SelectorNode(PropertySelector inner) : inner(inner) {}
     explicit SelectorNode(FilterSelector inner) : inner(inner) {}
     explicit SelectorNode(TruncateSelector inner) : inner(inner) {}
+    explicit SelectorNode(FlattenSelector inner) : inner(inner) {}
 
     const char* name() const {
         return boost::apply_visitor([](const auto& x) { return x.name(); },
@@ -333,12 +365,13 @@ class SelectorNode : public Selector {
             overloaded{
                 [next, end](const auto& o, const auto& s) {
                     return s.apply(o, next, end);
-                },
-                [](const auto& o, const auto& s) {
-                    throw std::runtime_error(
-                        std::string("selector and json object don't match: ") +
-                        s.name() + ", " + o.name());
-                }},
+                } //,
+                // [](const auto& o, const auto& s) {
+                //     throw std::runtime_error(
+                //         std::string("selector and json object don't match: ") +
+                //         s.name() + ", " + o.name());
+                // }
+            },
             inner);
     }
 
@@ -354,6 +387,28 @@ class SelectorNode : public Selector {
 // these template functions make it a little easier to find and extend what
 // selector handles what json item
 // but they generate ridiculous error matches...
+
+JsonNode apply_selector(const FlattenSelector& /*unused*/,
+                        const JsonArray& arr, auto next, auto end) {
+    std::vector<JsonNode> flattened_array;
+
+    for (const auto& item : arr.get()) {
+        // calculate sub result and flatten if result is array
+        const JsonNode result = apply_selector(item, next, end);
+        result.apply_visitor(overloaded{
+            [&flattened_array](const JsonArray& nested_array) {
+                std::copy(
+                    nested_array.get().cbegin(),
+                    nested_array.get().cend(),
+                    std::back_inserter(flattened_array)
+                );
+            },
+            [](const auto& /*unused*/) {}
+        });
+    }
+
+    return JsonNode(JsonArray(flattened_array));
+}
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
                         const JsonObject& /*unused*/, auto next, auto end) {
     if (next != end) {
