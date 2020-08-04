@@ -14,6 +14,10 @@ CXXFLAGS += -g -O1 -fsanitize=fuzzer,address -fprofile-instr-generate -fcoverage
 LDFLAGS += -fsanitize=fuzzer,address
 endif
 
+ifdef RELEASE
+CXXFLAGS += -O3
+endif
+
 SRCS_LIB:=$(filter-out src/main.cpp,$(shell find src -type f -name '*.cpp'))
 OBJS_LIB:=$(patsubst %.cpp,%.o,$(SRCS_LIB))
 
