@@ -6,6 +6,7 @@
 #include <iostream>
 #include <utility>
 #include <vector>
+#include <iterator>
 
 #include "../json/json.hpp"
 #include "../utils.hpp"
@@ -362,15 +363,8 @@ class SelectorNode : public Selector {
     template <typename Iterator>
     JsonNode apply(const JsonNode& json, Iterator next, Iterator end) const {
         return json.apply_visitor(
-            overloaded{
-                [next, end](const auto& o, const auto& s) {
-                    return s.apply(o, next, end);
-                } //,
-                // [](const auto& o, const auto& s) {
-                //     throw std::runtime_error(
-                //         std::string("selector and json object don't match: ") +
-                //         s.name() + ", " + o.name());
-                // }
+            [next, end](const auto& o, const auto& s) {
+                return s.apply(o, next, end);
             },
             inner);
     }
@@ -388,8 +382,11 @@ class SelectorNode : public Selector {
 // selector handles what json item
 // but they generate ridiculous error matches...
 
+template<typename I>
+concept as_iter = std::random_access_iterator<I>;
+
 JsonNode apply_selector(const FlattenSelector& /*unused*/,
-                        const JsonArray& arr, auto next, auto end) {
+                        const JsonArray& arr, as_iter auto next, as_iter auto end) {
     std::vector<JsonNode> flattened_array;
 
     for (const auto& item : arr.get()) {
@@ -410,7 +407,7 @@ JsonNode apply_selector(const FlattenSelector& /*unused*/,
     return JsonNode(JsonArray(flattened_array));
 }
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
-                        const JsonObject& /*unused*/, auto next, auto end) {
+                        const JsonObject& /*unused*/, as_iter auto next, as_iter auto end) {
     if (next != end) {
         // TODO create something better to emit warnings
         std::cerr << "Truncate is not last selector\n";
@@ -418,21 +415,21 @@ JsonNode apply_selector(const TruncateSelector& /*unused*/,
     return JsonNode(JsonObject());
 }
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
-                        const JsonArray& /*unused*/, auto next, auto end) {
+                        const JsonArray& /*unused*/, as_iter auto next, as_iter auto end) {
     if (next != end) {
         std::cerr << "Truncate is not last selector\n";
     }
     return JsonNode(JsonArray());
 }
 JsonNode apply_selector(const TruncateSelector& /*unused*/, const auto& json,
-                        auto next, auto end) {
+                        as_iter auto next, as_iter auto end) {
     if (next != end) {
         std::cerr << "Truncate is not last selector\n";
     }
     return JsonNode(json);
 }
 JsonNode apply_selector(const FilterSelector& s, const JsonArray& arr,
-                        auto next, auto end) {
+                        as_iter auto next, as_iter auto end) {
     std::vector<JsonNode> result;
 
     for (const auto& item : arr.get()) {
@@ -450,54 +447,51 @@ JsonNode apply_selector(const FilterSelector& s, const JsonArray& arr,
     return JsonNode(JsonArray(result));
 }
 JsonNode apply_selector(const PropertySelector& s, const JsonObject& obj,
-                        auto next, auto end) {
-    std::vector<std::pair<std::string, JsonNode>> result;
+                        as_iter auto next, as_iter auto end) {
+    const auto& keys = s.get_keys();
+    std::vector<std::pair<std::string, JsonNode>> result{keys.size()};
 
-    // redefinition of next so it does not get repeatedly incremented in the
-    // loop
-    auto next_ = next;
-
-    for (const auto& key : s.get_keys()) {
-        result.push_back(
-            std::make_pair(key, apply_selector(obj.find(key), next_, end)));
-    }
+    std::transform(keys.cbegin(), keys.cend(), result.begin(), [&obj, next, end](const auto& key) {
+        return std::make_pair(key, apply_selector(obj.find(key), next, end));
+    });
 
     return {JsonObject(result)};
 }
 JsonNode apply_selector(const RangeSelector& s, const JsonArray& array,
-                        auto next, auto end) {
+                        as_iter auto next, as_iter auto end) {
     const auto& arr = array.get();
     auto begin_it = arr.cbegin() + s.get_start().get_value_or(0);
     auto end_it = arr.cbegin() + s.get_end().get_value_or(arr.size() - 1) + 1;
 
-    std::vector<JsonNode> result;
-    std::transform(begin_it, end_it, std::back_inserter(result),
-                   [next, end](const JsonNode& item) {
-                       return apply_selector(item, next, end);
-                   });
+    const unsigned long num_items = s.get_end().get_value_or(arr.size() - 1) + 1 - s.get_start().get_value_or(0);
+
+    std::vector<JsonNode> result{num_items};
+    std::transform(begin_it, end_it, result.begin(), [next, end](const JsonNode& item) {
+       return apply_selector(item, next, end);
+   });
 
     return {JsonArray{result}};
 }
-JsonNode apply_selector(const IndexSelector& s, const JsonArray& arr, auto next,
-                        auto end) {
+JsonNode apply_selector(const IndexSelector& s, const JsonArray& arr, as_iter auto next,
+                        as_iter auto end) {
     return apply_selector(arr.at(s.get()), next, end);
 }
-JsonNode apply_selector(const KeySelector& s, const JsonObject& obj, auto next,
-                        auto end) {
+JsonNode apply_selector(const KeySelector& s, const JsonObject& obj, as_iter auto next,
+                        as_iter auto end) {
     return apply_selector(obj.find(s.get()), next, end);
 }
 JsonNode apply_selector(const AnyRootSelector& /*unused*/, const auto& json,
-                        auto next, auto end) {
+                        as_iter auto next, as_iter auto end) {
     return apply_selector(json, next, end);
 }
-JsonNode apply_selector(const auto& s, const auto& j, auto /*unused*/,
-                        auto /*unused*/) {
+JsonNode apply_selector(const auto& s, const auto& j, as_iter auto /*unused*/,
+                        as_iter auto /*unused*/) {
     throw std::runtime_error(
         std::string("selector and json object don't match: ") + s.name() +
         ", " + j.name());
 }
 
-JsonNode apply_selector(const JsonNode& json, auto next, auto end) {
+JsonNode apply_selector(const JsonNode& json, as_iter auto next, as_iter auto end) {
     if (next == end) {
         return JsonNode(json);
     }
@@ -507,8 +501,8 @@ JsonNode apply_selector(const JsonNode& json, auto next, auto end) {
     // couldn't use it in the loops for e.g. RangeSelector
     next = next + 1;
     return json.apply_visitor(
-        [&next, &end](auto& j, auto& s) {
-            return apply_selector(s, j, next, end);
+        [&next, &end](auto& item, auto& selector) {
+            return apply_selector(selector, item, next, end);
         },
         next_s.inner);
 }
