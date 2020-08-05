@@ -28,14 +28,14 @@ std::ostream& operator<<(std::ostream& o, const JsonObject& self) {
 
     const char* sep = "";
     for (const auto& i : self.members) {
-        o << sep << "\"" << i.first << "\": " << i.second;
+        o << sep << "\"" << i.first << "\":" << i.second;
         sep = ",";
     }
 
     return o << "}";
 }
 
-// class Array
+// class JsonArray
 std::ostream& operator<<(std::ostream& o, const JsonArray& self) {
     o << "[";
 

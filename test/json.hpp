@@ -3,10 +3,37 @@
 #include <boost/none.hpp>
 #include <string>
 #include <utility>
+#include <sstream>
 
 #include "json/json.hpp"
 
 using namespace json;
+
+#define REQUIRE_PARSE_AND_PRINT(s) { \
+    auto json = parse_json(s); \
+    std::stringstream ss; \
+    ss << json; \
+    REQUIRE(ss.str() == s); \
+}
+
+TEST_CASE("print integers", "[json]") {
+    REQUIRE_PARSE_AND_PRINT(R"#(5)#");
+    REQUIRE_PARSE_AND_PRINT(R"#(5e5)#");
+}
+TEST_CASE("print floats", "[json]") {
+    REQUIRE_PARSE_AND_PRINT(R"#(5.5)#");
+    REQUIRE_PARSE_AND_PRINT(R"#(5.5e5)#");
+}
+TEST_CASE("print strings", "[json]") {
+    REQUIRE_PARSE_AND_PRINT(R"#("hello world")#");
+}
+TEST_CASE("print arrays", "[json]") {
+    REQUIRE_PARSE_AND_PRINT(R"#([1,2,3,4,5])#");
+    REQUIRE_PARSE_AND_PRINT(R"#(["a b","c d"])#");
+}
+TEST_CASE("print objects", "[json]") {
+    REQUIRE_PARSE_AND_PRINT(R"#({"key1":[1,2,3,4,5],"key2":4})#");
+}
 
 template <typename T>
 T single_node(const std::string& s) {
