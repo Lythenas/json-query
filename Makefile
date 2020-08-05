@@ -3,7 +3,7 @@ CXX=clang++
 RM=rm -f
 
 WARNINGS=-Wall -Wextra -Wpedantic
-DEBUG=-g
+DEBUG=-g -O1
 
 CXXFLAGS=$(WARNINGS) $(DEBUG) -std=c++2a -I./src/ -I./includes/
 LDFLAGS=$(DEBUG)
@@ -12,6 +12,11 @@ LDLIBS=
 ifdef FUZZ
 CXXFLAGS += -g -O1 -fsanitize=fuzzer,address -fprofile-instr-generate -fcoverage-mapping
 LDFLAGS += -fsanitize=fuzzer,address
+endif
+
+ifdef COVERAGE
+CXXFLAGS += -g -fprofile-instr-generate -fcoverage-mapping
+RELEASE:=0
 endif
 
 ifdef RELEASE

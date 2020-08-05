@@ -55,3 +55,6 @@ benchmarks/
 /jsonquery
 /jsonquery_test
 /.depend
+/test-coverage
+*.profdata
+*.profraw
