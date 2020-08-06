@@ -1,14 +1,14 @@
 #include <cstring>
 #include <exception>
+#include <iostream>
 #include <optional>
 #include <string>
-#include <iostream>
 
 namespace cli {
 
 class CliException : public std::exception {
-    public:
-        CliException() {}
+public:
+    CliException() {}
 };
 
 struct Arguments {
@@ -21,7 +21,8 @@ struct Arguments {
 
 void print_help(const char* name) {
     std::cerr
-        << "Usage: " << name << " [--help] [--only-parse] [--debug] <selectors> [file]"
+        << "Usage: " << name
+        << " [--help] [--only-parse] [--debug] <selectors> [file]"
         << "\n\n"
         << "ARGS:" << std::endl
         << "\t<selectors>\tQuery selectors to apply\n"
@@ -29,11 +30,14 @@ void print_help(const char* name) {
         << "\n"
         << "OPTIONS:\n"
         << "\t--help\tPrints this help message and quits\n"
-        << "\t--only-parse\tOnly parse the json and quits (useful for benchmarking)\n"
+        << "\t--only-parse\tOnly parse the json and quits (useful for "
+           "benchmarking)\n"
         << "\t--debug\tPrint debug information\n"
         << "\n"
-        << "All diagnostics and errors are written to stderr and the json output "
-        << "is written to stdout. So it is save to pipe the output to a file or command.\n";
+        << "All diagnostics and errors are written to stderr and the json "
+           "output "
+        << "is written to stdout. So it is save to pipe the output to a file "
+           "or command.\n";
 }
 
 /**
@@ -92,4 +96,4 @@ Arguments parse_arguments(int argc, char** argv) {
     return args;
 }
 
-} // namespace jq
+} // namespace cli

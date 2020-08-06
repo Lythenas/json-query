@@ -1,20 +1,21 @@
 #include <catch/catch.hpp>
 
 #include <boost/none.hpp>
+#include <sstream>
 #include <string>
 #include <utility>
-#include <sstream>
 
 #include "json/json.hpp"
 
 using namespace json;
 
-#define REQUIRE_PARSE_AND_PRINT(s) { \
-    auto json = parse_json(s); \
-    std::stringstream ss; \
-    ss << json; \
-    REQUIRE(ss.str() == s); \
-}
+#define REQUIRE_PARSE_AND_PRINT(s)                                             \
+    {                                                                          \
+        auto json = parse_json(s);                                             \
+        std::stringstream ss;                                                  \
+        ss << json;                                                            \
+        REQUIRE(ss.str() == s);                                                \
+    }
 
 TEST_CASE("print integers", "[json]") {
     REQUIRE_PARSE_AND_PRINT(R"#(5)#");
@@ -35,8 +36,7 @@ TEST_CASE("print objects", "[json]") {
     REQUIRE_PARSE_AND_PRINT(R"#({"key1":[1,2,3,4,5],"key2":4})#");
 }
 
-template <typename T>
-T single_node(const std::string& s) {
+template <typename T> T single_node(const std::string& s) {
     return parse_json(s).get().as<T>();
 }
 
@@ -150,12 +150,11 @@ TEST_CASE("objects with ints are parsed", "[json]") {
     {
         std::string s = R"#({ "key1": 5, "key2": 7 })#";
         auto obj = single_node<JsonObject>(s);
-        REQUIRE(
-            obj ==
-            JsonObject(std::vector{
-                std::make_pair(std::string{"key1"}, JsonNode(JsonNumber("5"))),
-                std::make_pair(std::string{"key2"},
-                               JsonNode(JsonNumber("7")))}));
+        REQUIRE(obj == JsonObject(std::vector{
+                           std::make_pair(std::string{"key1"},
+                                          JsonNode(JsonNumber("5"))),
+                           std::make_pair(std::string{"key2"},
+                                          JsonNode(JsonNumber("7")))}));
     }
 }
 
@@ -164,21 +163,20 @@ TEST_CASE("nested objects and arrays are parsed", "[json]") {
         std::string s =
             R"#({ "array": [ { "id": 1, "value": "x" }, { "id": 2, "value": "y" } ] })#";
         auto obj = single_node<JsonObject>(s);
-        REQUIRE(
-            obj ==
-            JsonObject(std::vector{std::make_pair(
-                std::string{"array"},
-                JsonNode(JsonArray(std::vector{
-                    JsonNode(JsonObject(std::vector{
-                        std::make_pair(std::string{"id"},
-                                       JsonNode(JsonNumber("1"))),
-                        std::make_pair(std::string{"value"},
-                                       JsonNode(JsonString("x")))})),
-                    JsonNode(JsonObject(std::vector{
-                        std::make_pair(std::string{"id"},
-                                       JsonNode(JsonNumber("2"))),
-                        std::make_pair(std::string{"value"},
-                                       JsonNode(JsonString("y")))}))})))}));
+        REQUIRE(obj ==
+                JsonObject(std::vector{std::make_pair(
+                    std::string{"array"},
+                    JsonNode(JsonArray(std::vector{
+                        JsonNode(JsonObject(std::vector{
+                            std::make_pair(std::string{"id"},
+                                           JsonNode(JsonNumber("1"))),
+                            std::make_pair(std::string{"value"},
+                                           JsonNode(JsonString("x")))})),
+                        JsonNode(JsonObject(std::vector{
+                            std::make_pair(std::string{"id"},
+                                           JsonNode(JsonNumber("2"))),
+                            std::make_pair(std::string{"value"},
+                                           JsonNode(JsonString("y")))}))})))}));
     }
     {
         std::string s = R"#({
@@ -188,20 +186,19 @@ TEST_CASE("nested objects and arrays are parsed", "[json]") {
     ]
 })#";
         auto obj = single_node<JsonObject>(s);
-        REQUIRE(
-            obj ==
-            JsonObject(std::vector{std::make_pair(
-                std::string{"array"},
-                JsonNode(JsonArray(std::vector{
-                    JsonNode(JsonObject(std::vector{
-                        std::make_pair(std::string{"id"},
-                                       JsonNode(JsonNumber("1"))),
-                        std::make_pair(std::string{"value"},
-                                       JsonNode(JsonString("x")))})),
-                    JsonNode(JsonObject(std::vector{
-                        std::make_pair(std::string{"id"},
-                                       JsonNode(JsonNumber("2"))),
-                        std::make_pair(std::string{"value"},
-                                       JsonNode(JsonString("y")))}))})))}));
+        REQUIRE(obj ==
+                JsonObject(std::vector{std::make_pair(
+                    std::string{"array"},
+                    JsonNode(JsonArray(std::vector{
+                        JsonNode(JsonObject(std::vector{
+                            std::make_pair(std::string{"id"},
+                                           JsonNode(JsonNumber("1"))),
+                            std::make_pair(std::string{"value"},
+                                           JsonNode(JsonString("x")))})),
+                        JsonNode(JsonObject(std::vector{
+                            std::make_pair(std::string{"id"},
+                                           JsonNode(JsonNumber("2"))),
+                            std::make_pair(std::string{"value"},
+                                           JsonNode(JsonString("y")))}))})))}));
     }
 }

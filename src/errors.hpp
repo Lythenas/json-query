@@ -1,15 +1,15 @@
 #pragma once
 
+#include <boost/spirit/home/support/info.hpp>
 #include <exception>
 #include <string>
-#include <boost/spirit/home/support/info.hpp>
 
 namespace errors {
 
 class AppException : public std::exception {};
 
 class InputFileException : public AppException {
-   public:
+public:
     const char* what() const noexcept override {
         return "error reading input file";
     }
@@ -17,7 +17,7 @@ class InputFileException : public AppException {
 
 class ParseError : public std::exception {};
 class SyntaxError : public ParseError {
-   public:
+public:
     std::size_t error_pos;
     std::string expected;
 

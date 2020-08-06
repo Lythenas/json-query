@@ -5,11 +5,11 @@
 #include <optional>
 #include <string>
 
+#include "cli.hpp"
 #include "errors.hpp"
-#include "json/json.hpp"
 #include "selectors/parser.hpp"
 #include "selectors/selectors.hpp"
-#include "cli.hpp"
+#include "json/json.hpp"
 
 using json::Json;
 using json::parse_json;

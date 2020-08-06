@@ -48,4 +48,4 @@ std::ostream& operator<<(std::ostream& o, const JsonArray& self) {
     return o << "]";
 }
 
-}  // namespace json
+} // namespace json

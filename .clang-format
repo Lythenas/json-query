@@ -1,0 +1,11 @@
+---
+Language:        Cpp
+BasedOnStyle:  LLVM
+IndentWidth: 4
+
+# force points to the type
+DerivePointerAlignment: false
+PointerAlignment: Left
+# keep public/protected/private at same level as class/struct
+AccessModifierOffset: -4
+...

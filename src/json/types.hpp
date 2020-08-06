@@ -28,7 +28,7 @@ std::ostream& operator<<(std::ostream& o, const JsonNode& self);
 class JsonString {
     std::string str;
 
-   public:
+public:
     JsonString() = default;
     JsonString(std::string str) : str(std::move(str)) {}
 
@@ -58,7 +58,7 @@ class JsonString {
 class JsonNumber {
     std::string number;
 
-   public:
+public:
     JsonNumber(std::string s) : number(std::move(s)) {}
 
     static const char* name() { return "Number"; }
@@ -91,7 +91,7 @@ class JsonNumber {
 class JsonObject {
     std::vector<std::pair<std::string, JsonNode>> members;
 
-   public:
+public:
     JsonObject() = default;
     JsonObject(const std::vector<std::pair<std::string, JsonNode>>& members)
         : members(members) {}
@@ -131,7 +131,7 @@ class JsonObject {
 class JsonArray {
     std::vector<JsonNode> items;
 
-   public:
+public:
     JsonArray() = default;
     JsonArray(std::vector<JsonNode> items) : items(std::move(items)) {}
     // needed by parser
@@ -175,7 +175,7 @@ enum JsonLiteralValue {
 class JsonLiteral {
     JsonLiteralValue value;
 
-   public:
+public:
     JsonLiteral(JsonLiteralValue value) : value(value) {}
 
     static const char* name() { return "Literal"; }
@@ -184,12 +184,12 @@ class JsonLiteral {
 
     friend std::ostream& operator<<(std::ostream& o, const JsonLiteral& self) {
         switch (self.value) {
-            case JSON_TRUE:
-                return o << "true";
-            case JSON_FALSE:
-                return o << "false";
-            case JSON_NULL:
-                return o << "null";
+        case JSON_TRUE:
+            return o << "true";
+        case JSON_FALSE:
+            return o << "false";
+        case JSON_NULL:
+            return o << "null";
         }
     }
 };
@@ -203,7 +203,7 @@ class JsonNode {
     using InnerVariant = boost::variant<JsonString, JsonNumber, JsonObject,
                                         JsonArray, JsonLiteral>;
 
-   public:
+public:
     JsonNode() = default;
     JsonNode(JsonString inner) : inner(inner) {}
     JsonNode(JsonNumber inner) : inner(inner) {}
@@ -217,10 +217,7 @@ class JsonNode {
 
     bool operator==(const JsonNode&) const = default;
 
-    template <typename T>
-    const T& as() const {
-        return boost::get<T>(inner);
-    }
+    template <typename T> const T& as() const { return boost::get<T>(inner); }
 
     /**
      * Allow visitation lambdas.
@@ -240,7 +237,7 @@ class JsonNode {
         return o;
     }
 
-   private:
+private:
     InnerVariant inner;
 };
 
@@ -252,7 +249,7 @@ class JsonNode {
  * TODO not sure if we need this
  */
 class Json {
-   public:
+public:
     Json() = default;
     Json(JsonNode node) : node(std::move(node)) {}
 
@@ -265,10 +262,10 @@ class Json {
         return o << self.node;
     }
 
-   private:
+private:
     JsonNode node;
 };
 
-}  // namespace json
+} // namespace json
 
 #endif

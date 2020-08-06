@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "json/json.hpp"
 #include "selectors/selectors.hpp"
+#include "json/json.hpp"
 
 #include <boost/optional/optional_io.hpp>
 
@@ -11,7 +11,8 @@ using namespace selectors;
 using namespace json;
 
 TEST_CASE("apply key chain selector", "[selectors]") {
-    Json json = parse_json(R"#({ "key1": { "key3": 3, "key4": 4 }, "key2": 2 })#");
+    Json json =
+        parse_json(R"#({ "key1": { "key3": 3, "key4": 4 }, "key2": 2 })#");
     Selectors selectors = parse_selectors(R"#("key1"."key3")#");
     Json result = selectors.apply(json);
     Json expected = parse_json(R"#(3)#");
@@ -86,87 +87,87 @@ TEST_CASE("apply range selector", "[selectors]") {
     }
 }
 TEST_CASE("apply property selector", "[selectors]") {
-        Json json = parse_json(R"#({ "key1": 1, "key2": 2, "key3": 3 })#");
-        {
-            Selectors selectors = parse_selectors(R"#({ "key1" })#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#({ "key1": 1 })#");
-            REQUIRE(result == expected);
-        }
-        {
-            Selectors selectors = parse_selectors(R"#({ "key1", "key2" })#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#({ "key1": 1, "key2": 2 })#");
-            REQUIRE(result == expected);
-        }
-        {
-            Selectors selectors = parse_selectors(R"#({ "key1", "key3" })#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#({ "key1": 1, "key3": 3 })#");
-            REQUIRE(result == expected);
-        }
-        {
-            Selectors selectors = parse_selectors(R"#({ "key2", "key3" })#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#({ "key2": 2, "key3": 3 })#");
-            REQUIRE(result == expected);
-        }
+    Json json = parse_json(R"#({ "key1": 1, "key2": 2, "key3": 3 })#");
+    {
+        Selectors selectors = parse_selectors(R"#({ "key1" })#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#({ "key1": 1 })#");
+        REQUIRE(result == expected);
+    }
+    {
+        Selectors selectors = parse_selectors(R"#({ "key1", "key2" })#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#({ "key1": 1, "key2": 2 })#");
+        REQUIRE(result == expected);
+    }
+    {
+        Selectors selectors = parse_selectors(R"#({ "key1", "key3" })#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#({ "key1": 1, "key3": 3 })#");
+        REQUIRE(result == expected);
+    }
+    {
+        Selectors selectors = parse_selectors(R"#({ "key2", "key3" })#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#({ "key2": 2, "key3": 3 })#");
+        REQUIRE(result == expected);
+    }
 }
 TEST_CASE("apply filter selector", "[selectors]") {
-        Json json = parse_json(
-            R"#([{"key1": 1}, {"key2": 2}, {"key1": 3}, {"key3": 4}, 5])#");
-        {
-            Selectors selectors = parse_selectors(R"#(|"key1")#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#([1, 3])#");
-            REQUIRE(result == expected);
-        }
-        {
-            Selectors selectors = parse_selectors(R"#(|"key2")#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#([2])#");
-            REQUIRE(result == expected);
-        }
-        {
-            Selectors selectors = parse_selectors(R"#(|"key3")#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#([4])#");
-            REQUIRE(result == expected);
-        }
-        {
-            Selectors selectors = parse_selectors(R"#(|"something")#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#([])#");
-            REQUIRE(result == expected);
-        }
+    Json json = parse_json(
+        R"#([{"key1": 1}, {"key2": 2}, {"key1": 3}, {"key3": 4}, 5])#");
+    {
+        Selectors selectors = parse_selectors(R"#(|"key1")#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#([1, 3])#");
+        REQUIRE(result == expected);
+    }
+    {
+        Selectors selectors = parse_selectors(R"#(|"key2")#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#([2])#");
+        REQUIRE(result == expected);
+    }
+    {
+        Selectors selectors = parse_selectors(R"#(|"key3")#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#([4])#");
+        REQUIRE(result == expected);
+    }
+    {
+        Selectors selectors = parse_selectors(R"#(|"something")#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#([])#");
+        REQUIRE(result == expected);
+    }
 }
 TEST_CASE("apply truncate selector", "[selectors]") {
-        {
-            Json json = parse_json(R"#([1, 2, 3])#");
-            Selectors selectors = parse_selectors(R"#(!)#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#([])#");
-            REQUIRE(result == expected);
-        }
-        {
-            Json json = parse_json(R"#({"key1": 1, "key2": 2})#");
-            Selectors selectors = parse_selectors(R"#(!)#");
-            Json result = selectors.apply(json);
-            Json expected = parse_json(R"#({})#");
-            REQUIRE(result == expected);
-        }
-        {
-            Json json = parse_json(R"#(2)#");
-            Selectors selectors = parse_selectors(R"#(!)#");
-            Json result = selectors.apply(json);
-            REQUIRE(result == json);
-        }
-        {
-            Json json = parse_json(R"#("abc")#");
-            Selectors selectors = parse_selectors(R"#(!)#");
-            Json result = selectors.apply(json);
-            REQUIRE(result == json);
-        }
+    {
+        Json json = parse_json(R"#([1, 2, 3])#");
+        Selectors selectors = parse_selectors(R"#(!)#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#([])#");
+        REQUIRE(result == expected);
+    }
+    {
+        Json json = parse_json(R"#({"key1": 1, "key2": 2})#");
+        Selectors selectors = parse_selectors(R"#(!)#");
+        Json result = selectors.apply(json);
+        Json expected = parse_json(R"#({})#");
+        REQUIRE(result == expected);
+    }
+    {
+        Json json = parse_json(R"#(2)#");
+        Selectors selectors = parse_selectors(R"#(!)#");
+        Json result = selectors.apply(json);
+        REQUIRE(result == json);
+    }
+    {
+        Json json = parse_json(R"#("abc")#");
+        Selectors selectors = parse_selectors(R"#(!)#");
+        Json result = selectors.apply(json);
+        REQUIRE(result == json);
+    }
 }
 TEST_CASE("apply flatten selector", "[selectors]") {
     {
@@ -184,14 +185,16 @@ TEST_CASE("apply flatten selector", "[selectors]") {
         REQUIRE(result == expected);
     }
     {
-        Json json = parse_json(R"#([{"key": [1, 2]}, {"key": [3, 4]}, {"key": [5, 6]}])#");
+        Json json = parse_json(
+            R"#([{"key": [1, 2]}, {"key": [3, 4]}, {"key": [5, 6]}])#");
         Json expected = parse_json(R"#([1, 2, 3, 4, 5, 6])#");
         Selectors selectors = parse_selectors(R"#(.."key")#");
         Json result = selectors.apply(json);
         REQUIRE(result == expected);
     }
     {
-        Json json = parse_json(R"#({"key1": [{"key2": [1, 2]}, {"key2": [3, 4]}, {"key2": [5, 6]}] })#");
+        Json json = parse_json(
+            R"#({"key1": [{"key2": [1, 2]}, {"key2": [3, 4]}, {"key2": [5, 6]}] })#");
         Json expected = parse_json(R"#([1, 2, 3, 4, 5, 6])#");
         Selectors selectors = parse_selectors(R"#("key1".."key2")#");
         Json result = selectors.apply(json);
@@ -200,19 +203,18 @@ TEST_CASE("apply flatten selector", "[selectors]") {
 }
 
 TEST_CASE("apply multiple root selectors", "[selectors]") {
-        Json json = parse_json(R"#({ "key1": 1, "key2": 2 })#");
-        Selectors selectors = parse_selectors(R"#(.,.,.)#");
-        Json result = selectors.apply(json);
-        auto array = result.get().as<JsonArray>().get();
-        REQUIRE(array.size() == 3);
-        REQUIRE(array[0] == json.get());
-        REQUIRE(array[1] == json.get());
-        REQUIRE(array[2] == json.get());
+    Json json = parse_json(R"#({ "key1": 1, "key2": 2 })#");
+    Selectors selectors = parse_selectors(R"#(.,.,.)#");
+    Json result = selectors.apply(json);
+    auto array = result.get().as<JsonArray>().get();
+    REQUIRE(array.size() == 3);
+    REQUIRE(array[0] == json.get());
+    REQUIRE(array[1] == json.get());
+    REQUIRE(array[2] == json.get());
 }
 
 // Checks for a single selector of a specific type and returns it.
-template <typename T>
-T single_selector(const std::string& s) {
+template <typename T> T single_selector(const std::string& s) {
     Selectors res = parse_selectors(s.begin(), s.end());
 
     auto selectors = res.get();
@@ -246,9 +248,9 @@ std::vector<RootSelector> multiple(const std::string& s) {
 }
 
 TEST_CASE("any root selector parses", "[selectors]") {
-        std::string s = R"#(.)#";
-        single_selector<AnyRootSelector>(s);
-        // no content
+    std::string s = R"#(.)#";
+    single_selector<AnyRootSelector>(s);
+    // no content
 }
 
 TEST_CASE("key selector parses", "[selectors]") {
@@ -400,23 +402,23 @@ TEST_CASE("index selector chain parses", "[selectors]") {
 }
 
 TEST_CASE("multiple root key selectors parse", "[selectors]") {
-        std::string s = R"#("key1", "key2", "key3")#";
-        auto selectors = multiple(s);
-        REQUIRE(selectors.size() == 3);
+    std::string s = R"#("key1", "key2", "key3")#";
+    auto selectors = multiple(s);
+    REQUIRE(selectors.size() == 3);
 
-        {
-            auto key1 = selectors[0].get();
-            REQUIRE(key1.size() == 1); // First chain size is not one
-            REQUIRE(key1[0].as<KeySelector>().get() == "key1");
-        }
-        {
-            auto key2 = selectors[1].get();
-            REQUIRE(key2.size() == 1); // First chain size is not one
-            REQUIRE(key2[0].as<KeySelector>().get() == "key2");
-        }
-        {
-            auto key2 = selectors[2].get();
-            REQUIRE(key2.size() == 1); // First chain size is not one
-            REQUIRE(key2[0].as<KeySelector>().get() == "key3");
-        }
+    {
+        auto key1 = selectors[0].get();
+        REQUIRE(key1.size() == 1); // First chain size is not one
+        REQUIRE(key1[0].as<KeySelector>().get() == "key1");
+    }
+    {
+        auto key2 = selectors[1].get();
+        REQUIRE(key2.size() == 1); // First chain size is not one
+        REQUIRE(key2[0].as<KeySelector>().get() == "key2");
+    }
+    {
+        auto key2 = selectors[2].get();
+        REQUIRE(key2.size() == 1); // First chain size is not one
+        REQUIRE(key2[0].as<KeySelector>().get() == "key3");
+    }
 }

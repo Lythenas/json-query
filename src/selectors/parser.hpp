@@ -13,25 +13,25 @@
 #include <memory>
 #include <utility>
 
-#include "types.hpp"
 #include "../errors.hpp"
+#include "types.hpp"
 
 namespace selectors {
 
 namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 
-class SyntaxError: public errors::SyntaxError {
+class SyntaxError : public errors::SyntaxError {
     using errors::SyntaxError::SyntaxError;
 };
 
 class FailedToParseSelectorException : public std::exception {
-   public:
+public:
     FailedToParseSelectorException(const char* reason) : reason(reason) {}
 
     virtual const char* what() const noexcept override { return reason; }
 
-   private:
+private:
     const char* reason;
 };
 
@@ -40,10 +40,10 @@ struct selectors_grammar
     : qi::grammar<Iterator, Selectors(), ascii::space_type> {
     selectors_grammar() : selectors_grammar::base_type(root, "selectors") {
         using boost::phoenix::construct;
+        using boost::phoenix::if_;
         using boost::phoenix::new_;
         using boost::phoenix::throw_;
         using boost::phoenix::val;
-        using boost::phoenix::if_;
         using qi::_1;
         using qi::_2;
         using qi::_3;
@@ -61,14 +61,16 @@ struct selectors_grammar
 
         // flatten needs to be handles specially because a single dot already
         // means something else
-        compound = flatten[_val = construct<SelectorNode>(_1)] | (-qi::lit('.') >> basic)[_val = _1];
-        basic = index_or_range[_val = _1]
-            | flatten[_val = construct<SelectorNode>(_1)] // has to be before any_root
-            | any_root[_val = construct<SelectorNode>(_1)]
-            | key[_val = construct<SelectorNode>(_1)]
-            | property[_val = construct<SelectorNode>(_1)]
-            | truncate[_val = construct<SelectorNode>(_1)]
-            | filter[_val = construct<SelectorNode>(_1)];
+        compound = flatten[_val = construct<SelectorNode>(_1)] |
+                   (-qi::lit('.') >> basic)[_val = _1];
+        basic = index_or_range[_val = _1] |
+                flatten[_val = construct<SelectorNode>(
+                            _1)] // has to be before any_root
+                | any_root[_val = construct<SelectorNode>(_1)] |
+                key[_val = construct<SelectorNode>(_1)] |
+                property[_val = construct<SelectorNode>(_1)] |
+                truncate[_val = construct<SelectorNode>(_1)] |
+                filter[_val = construct<SelectorNode>(_1)];
 
         flatten = qi::lit("..")[_val = construct<FlattenSelector>()];
         filter = ('|' > key)[_val = construct<FilterSelector>(_1)];
@@ -77,19 +79,19 @@ struct selectors_grammar
                     '}')[_val = construct<PropertySelector>(_1)];
 
         // no backtracking between index and range parsing
-        index_or_range = qi::lit('[')
-            > (-qi::int_ > -qi::char_(':') > -qi::int_)[
+        index_or_range =
+            qi::lit('[') >
+            (-qi::int_ > -qi::char_(':') > -qi::int_)[
                 // it's only an index if we got an int and no colon
-                if_(_1 && !_2)[
-                    _val = construct<SelectorNode>(construct<IndexSelector>(*_1))
-                // otherwise it's a (possibly empty) range
-                // NOTE: if the second int was matched the colon was also
-                // matched or there is a parse error
-                ].else_[
-                    _val = construct<SelectorNode>(construct<RangeSelector>(_1, _3))
-                ]
-            ]
-            > qi::lit(']');
+                if_(_1 && !_2)[_val = construct<SelectorNode>(
+                                   construct<IndexSelector>(*_1))
+                               // otherwise it's a (possibly empty) range
+                               // NOTE: if the second int was matched the colon
+                               // was also matched or there is a parse error
+        ]
+                    .else_[_val = construct<SelectorNode>(
+                               construct<RangeSelector>(_1, _3))]] >
+            qi::lit(']');
 
         any_root = qi::lit('.')[_val = construct<AnyRootSelector>()];
         key = quoted_string[_val = construct<KeySelector>(_1)];
@@ -162,7 +164,7 @@ Selectors parse_selectors(const std::string& s) {
     return parse_selectors(s.begin(), s.end());
 }
 
-}  // namespace selectors
+} // namespace selectors
 
 // SELECTORS:
 //
