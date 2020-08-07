@@ -374,16 +374,13 @@ public:
 };
 
 // for (very) slightly better error messages
-template<typename S>
-concept is_selector = std::same_as<S, InvalidSelector>
-    || std::same_as<S, AnyRootSelector>
-    || std::same_as<S, KeySelector>
-    || std::same_as<S, IndexSelector>
-    || std::same_as<S, RangeSelector>
-    || std::same_as<S, PropertySelector>
-    || std::same_as<S, FilterSelector>
-    || std::same_as<S, TruncateSelector>
-    || std::same_as<S, FlattenSelector>;
+template <typename S>
+concept is_selector =
+    std::same_as<S, InvalidSelector> || std::same_as<S, AnyRootSelector> ||
+    std::same_as<S, KeySelector> || std::same_as<S, IndexSelector> ||
+    std::same_as<S, RangeSelector> || std::same_as<S, PropertySelector> ||
+    std::same_as<S, FilterSelector> || std::same_as<S, TruncateSelector> ||
+    std::same_as<S, FlattenSelector>;
 
 // these template functions make it a little easier to find and extend what
 // selector handles what json item
@@ -496,8 +493,8 @@ JsonNode apply_selector(const AnyRootSelector& /*unused*/, const auto& json,
                         sel_iter auto next, sel_iter auto end) {
     return apply_selector(json, next, end);
 }
-JsonNode apply_selector(const is_selector auto& s, const auto& j, sel_iter auto /*unused*/,
-                        sel_iter auto /*unused*/) {
+JsonNode apply_selector(const is_selector auto& s, const auto& j,
+                        sel_iter auto /*unused*/, sel_iter auto /*unused*/) {
     throw std::runtime_error(
         std::string("selector and json object don't match: ") + s.name() +
         ", " + j.name());
