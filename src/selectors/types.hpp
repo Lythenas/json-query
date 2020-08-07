@@ -17,11 +17,9 @@ namespace ranges = std::ranges;
 
 class SelectorNode;
 
-class Selector {};
-
 // Used to detect wrong parsing because the default constructor of the
 // first variant is sometimes used.
-class InvalidSelector : public Selector {
+class InvalidSelector {
 public:
     static const char* name() { return "Invalid"; }
     friend std::ostream& operator<<(std::ostream& o,
@@ -38,7 +36,7 @@ public:
  *
  * Can be applied to all json items.
  */
-class AnyRootSelector : public Selector {
+class AnyRootSelector {
 public:
     static const char* name() { return "Any"; }
 
@@ -71,7 +69,7 @@ public:
  * 2
  * ```
  */
-class KeySelector : public Selector {
+class KeySelector {
 public:
     KeySelector() = default;
     KeySelector(std::string key) : key(std::move(key)) {}
@@ -107,7 +105,7 @@ private:
  * 2
  * ```
  */
-class IndexSelector : public Selector {
+class IndexSelector {
 public:
     int index;
 
@@ -147,7 +145,7 @@ public:
  * [ 2, 3, 4 ]
  * ```
  */
-class RangeSelector : public Selector {
+class RangeSelector {
 public:
     RangeSelector() = default;
     RangeSelector(boost::optional<RangeSelector> r) {
@@ -207,7 +205,7 @@ private:
  * }
  * ```
  */
-class PropertySelector : public Selector {
+class PropertySelector {
 public:
     PropertySelector() = default;
     PropertySelector(std::vector<std::string> keys) : keys(std::move(keys)) {}
@@ -256,7 +254,7 @@ private:
  * [ 1, 2, 3 ]
  * ```
  */
-class FilterSelector : public Selector {
+class FilterSelector {
 public:
     FilterSelector() = default;
     FilterSelector(const KeySelector& filter) : filter(filter) {}
@@ -285,7 +283,7 @@ private:
  *
  * Can be applied to all json items.
  */
-class TruncateSelector : public Selector {
+class TruncateSelector {
 public:
     TruncateSelector() = default;
 
@@ -316,7 +314,7 @@ public:
  * [1, 2, 3, 4, 5, 6]
  * ```
  */
-class FlattenSelector : public Selector {
+class FlattenSelector {
 public:
     FlattenSelector() = default;
 
@@ -333,7 +331,7 @@ public:
  *
  * This avoids having to allocate each constructor separately on the heap.
  */
-class SelectorNode : public Selector {
+class SelectorNode {
     using InnerVariant =
         boost::variant<InvalidSelector, AnyRootSelector, KeySelector,
                        IndexSelector, RangeSelector, PropertySelector,
@@ -375,14 +373,29 @@ public:
     InnerVariant inner;
 };
 
+// for (very) slightly better error messages
+template<typename S>
+concept is_selector = std::same_as<S, InvalidSelector>
+    || std::same_as<S, AnyRootSelector>
+    || std::same_as<S, KeySelector>
+    || std::same_as<S, IndexSelector>
+    || std::same_as<S, RangeSelector>
+    || std::same_as<S, PropertySelector>
+    || std::same_as<S, FilterSelector>
+    || std::same_as<S, TruncateSelector>
+    || std::same_as<S, FlattenSelector>;
+
 // these template functions make it a little easier to find and extend what
 // selector handles what json item
 // but they generate ridiculous error matches...
+//
+// also: ideally I would put them into a separate header but it's to much
+// hassle to resolve the "define before use" dependencies
 
-template <typename I> concept as_iter = std::random_access_iterator<I>;
+template <typename I> concept sel_iter = std::random_access_iterator<I>;
 
 JsonNode apply_selector(const FlattenSelector& /*unused*/, const JsonArray& arr,
-                        as_iter auto next, as_iter auto end) {
+                        sel_iter auto next, sel_iter auto end) {
     std::vector<JsonNode> flattened_array;
 
     for (const auto& item : arr.get()) {
@@ -400,8 +413,8 @@ JsonNode apply_selector(const FlattenSelector& /*unused*/, const JsonArray& arr,
     return JsonNode(JsonArray(flattened_array));
 }
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
-                        const JsonObject& /*unused*/, as_iter auto next,
-                        as_iter auto end) {
+                        const JsonObject& /*unused*/, sel_iter auto next,
+                        sel_iter auto end) {
     if (next != end) {
         // TODO create something better to emit warnings
         std::cerr << "Truncate is not last selector\n";
@@ -409,22 +422,22 @@ JsonNode apply_selector(const TruncateSelector& /*unused*/,
     return JsonNode(JsonObject());
 }
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
-                        const JsonArray& /*unused*/, as_iter auto next,
-                        as_iter auto end) {
+                        const JsonArray& /*unused*/, sel_iter auto next,
+                        sel_iter auto end) {
     if (next != end) {
         std::cerr << "Truncate is not last selector\n";
     }
     return JsonNode(JsonArray());
 }
 JsonNode apply_selector(const TruncateSelector& /*unused*/, const auto& json,
-                        as_iter auto next, as_iter auto end) {
+                        sel_iter auto next, sel_iter auto end) {
     if (next != end) {
         std::cerr << "Truncate is not last selector\n";
     }
     return JsonNode(json);
 }
 JsonNode apply_selector(const FilterSelector& s, const JsonArray& arr,
-                        as_iter auto next, as_iter auto end) {
+                        sel_iter auto next, sel_iter auto end) {
     std::vector<JsonNode> result;
 
     for (const auto& item : arr.get()) {
@@ -442,7 +455,7 @@ JsonNode apply_selector(const FilterSelector& s, const JsonArray& arr,
     return JsonNode(JsonArray(result));
 }
 JsonNode apply_selector(const PropertySelector& s, const JsonObject& obj,
-                        as_iter auto next, as_iter auto end) {
+                        sel_iter auto next, sel_iter auto end) {
     const auto& keys = s.get_keys();
     std::vector<std::pair<std::string, JsonNode>> result{keys.size()};
 
@@ -455,7 +468,7 @@ JsonNode apply_selector(const PropertySelector& s, const JsonObject& obj,
     return {JsonObject(result)};
 }
 JsonNode apply_selector(const RangeSelector& s, const JsonArray& array,
-                        as_iter auto next, as_iter auto end) {
+                        sel_iter auto next, sel_iter auto end) {
     const auto& arr = array.get();
     auto begin_it = arr.cbegin() + s.get_start().get_value_or(0);
     auto end_it = arr.cbegin() + s.get_end().get_value_or(arr.size() - 1) + 1;
@@ -472,26 +485,26 @@ JsonNode apply_selector(const RangeSelector& s, const JsonArray& array,
     return {JsonArray{result}};
 }
 JsonNode apply_selector(const IndexSelector& s, const JsonArray& arr,
-                        as_iter auto next, as_iter auto end) {
+                        sel_iter auto next, sel_iter auto end) {
     return apply_selector(arr.at(s.get()), next, end);
 }
 JsonNode apply_selector(const KeySelector& s, const JsonObject& obj,
-                        as_iter auto next, as_iter auto end) {
+                        sel_iter auto next, sel_iter auto end) {
     return apply_selector(obj.find(s.get()), next, end);
 }
 JsonNode apply_selector(const AnyRootSelector& /*unused*/, const auto& json,
-                        as_iter auto next, as_iter auto end) {
+                        sel_iter auto next, sel_iter auto end) {
     return apply_selector(json, next, end);
 }
-JsonNode apply_selector(const auto& s, const auto& j, as_iter auto /*unused*/,
-                        as_iter auto /*unused*/) {
+JsonNode apply_selector(const is_selector auto& s, const auto& j, sel_iter auto /*unused*/,
+                        sel_iter auto /*unused*/) {
     throw std::runtime_error(
         std::string("selector and json object don't match: ") + s.name() +
         ", " + j.name());
 }
 
-JsonNode apply_selector(const JsonNode& json, as_iter auto next,
-                        as_iter auto end) {
+JsonNode apply_selector(const JsonNode& json, sel_iter auto next,
+                        sel_iter auto end) {
     if (next == end) {
         return JsonNode(json);
     }
@@ -513,7 +526,7 @@ JsonNode apply_selector(const JsonNode& json, as_iter auto next,
  * The result of applying the selector is the result of applying all selectors
  * in sequential order.
  */
-class RootSelector : public Selector {
+class RootSelector {
 public:
     RootSelector() = default;
     RootSelector(std::vector<SelectorNode> inner) : inner(std::move(inner)) {}
@@ -562,7 +575,7 @@ public:
         if (selectors.size() == 1) {
             result.get() = selectors[0].apply(node);
         } else {
-            auto apply = [&node](const auto& selector) {
+            auto apply = [&node](const RootSelector& selector) {
                 return selector.apply(node);
             };
             std::vector<JsonNode> array;
