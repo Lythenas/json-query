@@ -5,6 +5,7 @@
 #include <boost/variant.hpp>
 #include <iostream>
 #include <iterator>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -327,6 +328,45 @@ public:
 };
 
 /**
+ * Constraint on the type of a selector.
+ *
+ * All selector types should be listed here.
+ */
+// clang-format off
+template <typename S>
+concept is_selector =
+    basically_same_as<S, InvalidSelector> ||
+    basically_same_as<S, AnyRootSelector> ||
+    basically_same_as<S, KeySelector> ||
+    basically_same_as<S, IndexSelector> ||
+    basically_same_as<S, RangeSelector> ||
+    basically_same_as<S, PropertySelector> ||
+    basically_same_as<S, FilterSelector> ||
+    basically_same_as<S, TruncateSelector> ||
+    basically_same_as<S, FlattenSelector>;
+// clang-format on
+
+/**
+ * Constraint for the type of iterator used for selector chains.
+ *
+ * Requirements:
+ *
+ * - copyable: need to save a copy in case of multiple sub-json items
+ *   (e.g. in ranges).
+ * - incrementable
+ * - dereferecing yields `const SelectorNode&`
+ */
+// clang-format off
+template <typename I>
+concept sel_iter =
+    std::copyable<I> &&
+    std::incrementable<I> &&
+    requires(I i) {
+        { *i } ->std::same_as<const SelectorNode&>;
+    };
+// clang-format on
+
+/**
  * Unifying wrapper for all selector kinds.
  *
  * This avoids having to allocate each constructor separately on the heap.
@@ -339,33 +379,31 @@ class SelectorNode {
 
 public:
     explicit SelectorNode() = default;
-    explicit SelectorNode(AnyRootSelector inner) : inner(inner) {}
-    explicit SelectorNode(KeySelector inner) : inner(inner) {}
-    explicit SelectorNode(IndexSelector inner) : inner(inner) {}
-    explicit SelectorNode(RangeSelector inner) : inner(inner) {}
-    explicit SelectorNode(PropertySelector inner) : inner(inner) {}
-    explicit SelectorNode(FilterSelector inner) : inner(inner) {}
-    explicit SelectorNode(TruncateSelector inner) : inner(inner) {}
-    explicit SelectorNode(FlattenSelector inner) : inner(inner) {}
+
+    template <is_selector S> explicit SelectorNode(S inner) : inner(inner) {}
 
     const char* name() const {
-        return boost::apply_visitor([](const auto& x) { return x.name(); },
-                                    inner);
+        return boost::apply_visitor(
+            [](const is_selector auto& x) { return x.name(); }, inner);
     }
 
-    template <typename T> const T& as() const { return boost::get<T>(inner); }
+    template <is_selector S> const S& as() const {
+        return boost::get<S>(inner);
+    }
 
-    template <typename Iterator>
+    template <sel_iter Iterator>
     JsonNode apply(const JsonNode& json, Iterator next, Iterator end) const {
         return json.apply_visitor(
-            [next, end](const auto& o, const auto& s) {
-                return s.apply(o, next, end);
+            [next, end](const is_json_item auto& item,
+                        const is_selector auto& s) {
+                return s.apply(item, next, end);
             },
             inner);
     }
 
     friend std::ostream& operator<<(std::ostream& o, const SelectorNode& self) {
-        boost::apply_visitor([&o](auto val) { o << val; }, self.inner);
+        boost::apply_visitor([&o](is_selector auto val) { o << val; },
+                             self.inner);
         return o;
     }
 
@@ -373,29 +411,18 @@ public:
     InnerVariant inner;
 };
 
-// for (very) slightly better error messages
-template <typename S>
-concept is_selector =
-    std::same_as<S, InvalidSelector> || std::same_as<S, AnyRootSelector> ||
-    std::same_as<S, KeySelector> || std::same_as<S, IndexSelector> ||
-    std::same_as<S, RangeSelector> || std::same_as<S, PropertySelector> ||
-    std::same_as<S, FilterSelector> || std::same_as<S, TruncateSelector> ||
-    std::same_as<S, FlattenSelector>;
-
 // these template functions make it a little easier to find and extend what
 // selector handles what json item
-// but they generate ridiculous error matches...
 //
 // also: ideally I would put them into a separate header but it's to much
 // hassle to resolve the "define before use" dependencies
 
-template <typename I> concept sel_iter = std::random_access_iterator<I>;
-
+template <sel_iter I>
 JsonNode apply_selector(const FlattenSelector& /*unused*/, const JsonArray& arr,
-                        sel_iter auto next, sel_iter auto end) {
+                        I next, I end) {
     std::vector<JsonNode> flattened_array;
 
-    for (const auto& item : arr.get()) {
+    for (const JsonNode& item : arr.get()) {
         // calculate sub result and flatten if result is array
         const JsonNode result = apply_selector(item, next, end);
         result.apply_visitor(
@@ -404,69 +431,79 @@ JsonNode apply_selector(const FlattenSelector& /*unused*/, const JsonArray& arr,
                                      nested_array.get().cend(),
                                      std::back_inserter(flattened_array));
                        },
-                       [](const auto& /*unused*/) {}});
+                       [](const is_json_item auto& /*unused*/) {}});
     }
 
     return JsonNode(JsonArray(flattened_array));
 }
+
+template <sel_iter I>
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
-                        const JsonObject& /*unused*/, sel_iter auto next,
-                        sel_iter auto end) {
+                        const JsonObject& /*unused*/, I next, I end) {
     if (next != end) {
         // TODO create something better to emit warnings
         std::cerr << "Truncate is not last selector\n";
     }
     return JsonNode(JsonObject());
 }
+
+template <sel_iter I>
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
-                        const JsonArray& /*unused*/, sel_iter auto next,
-                        sel_iter auto end) {
+                        const JsonArray& /*unused*/, I next, I end) {
     if (next != end) {
         std::cerr << "Truncate is not last selector\n";
     }
     return JsonNode(JsonArray());
 }
-JsonNode apply_selector(const TruncateSelector& /*unused*/, const auto& json,
-                        sel_iter auto next, sel_iter auto end) {
+
+template <sel_iter I>
+JsonNode apply_selector(const TruncateSelector& /*unused*/,
+                        const is_json_item auto& json, I next, I end) {
     if (next != end) {
         std::cerr << "Truncate is not last selector\n";
     }
     return JsonNode(json);
 }
-JsonNode apply_selector(const FilterSelector& s, const JsonArray& arr,
-                        sel_iter auto next, sel_iter auto end) {
+
+template <sel_iter I>
+JsonNode apply_selector(const FilterSelector& s, const JsonArray& arr, I next,
+                        I end) {
     std::vector<JsonNode> result;
 
-    for (const auto& item : arr.get()) {
+    for (const JsonNode& item : arr.get()) {
         try {
             // only check JsonObjects and ignore all other items
             item.apply_visitor(overloaded{
                 [&result, &next, &end, key = s.get()](const JsonObject& obj) {
                     result.push_back(apply_selector(key, obj, next, end));
                 },
-                [](const auto& /*unused*/) {}});
+                [](const is_json_item auto& /*unused*/) {}});
         } catch (const std::out_of_range&) {
         }
     }
 
     return JsonNode(JsonArray(result));
 }
+
+template <sel_iter I>
 JsonNode apply_selector(const PropertySelector& s, const JsonObject& obj,
-                        sel_iter auto next, sel_iter auto end) {
-    const auto& keys = s.get_keys();
+                        I next, I end) {
+    const std::vector<std::string>& keys = s.get_keys();
     std::vector<std::pair<std::string, JsonNode>> result{keys.size()};
 
     std::transform(keys.cbegin(), keys.cend(), result.begin(),
-                   [&obj, next, end](const auto& key) {
+                   [&obj, next, end](const std::string& key) {
                        return std::make_pair(
                            key, apply_selector(obj.find(key), next, end));
                    });
 
     return {JsonObject(result)};
 }
-JsonNode apply_selector(const RangeSelector& s, const JsonArray& array,
-                        sel_iter auto next, sel_iter auto end) {
-    const auto& arr = array.get();
+
+template <sel_iter I>
+JsonNode apply_selector(const RangeSelector& s, const JsonArray& array, I next,
+                        I end) {
+    const std::vector<JsonNode>& arr = array.get();
     auto begin_it = arr.cbegin() + s.get_start().get_value_or(0);
     auto end_it = arr.cbegin() + s.get_end().get_value_or(arr.size() - 1) + 1;
 
@@ -481,37 +518,43 @@ JsonNode apply_selector(const RangeSelector& s, const JsonArray& array,
 
     return {JsonArray{result}};
 }
-JsonNode apply_selector(const IndexSelector& s, const JsonArray& arr,
-                        sel_iter auto next, sel_iter auto end) {
+
+template <sel_iter I>
+JsonNode apply_selector(const IndexSelector& s, const JsonArray& arr, I next,
+                        I end) {
     return apply_selector(arr.at(s.get()), next, end);
 }
-JsonNode apply_selector(const KeySelector& s, const JsonObject& obj,
-                        sel_iter auto next, sel_iter auto end) {
+
+template <sel_iter I>
+JsonNode apply_selector(const KeySelector& s, const JsonObject& obj, I next,
+                        I end) {
     return apply_selector(obj.find(s.get()), next, end);
 }
-JsonNode apply_selector(const AnyRootSelector& /*unused*/, const auto& json,
-                        sel_iter auto next, sel_iter auto end) {
+
+template <sel_iter I>
+JsonNode apply_selector(const AnyRootSelector& /*unused*/,
+                        const is_json_item auto& json, I next, I end) {
     return apply_selector(json, next, end);
 }
-JsonNode apply_selector(const is_selector auto& s, const auto& j,
-                        sel_iter auto /*unused*/, sel_iter auto /*unused*/) {
+
+template <sel_iter I>
+JsonNode apply_selector(const is_selector auto& s, const is_json_item auto& j,
+                        I /*unused*/, I /*unused*/) {
     throw std::runtime_error(
         std::string("selector and json object don't match: ") + s.name() +
         ", " + j.name());
 }
 
-JsonNode apply_selector(const JsonNode& json, sel_iter auto next,
-                        sel_iter auto end) {
+template <sel_iter I>
+JsonNode apply_selector(const JsonNode& json, I next, I end) {
     if (next == end) {
         return JsonNode(json);
     }
 
     const SelectorNode& next_s = *next;
-    // don't use ++ here because that would change the iterator and then we
-    // couldn't use it in the loops for e.g. RangeSelector
-    next = next + 1;
+    next++;
     return json.apply_visitor(
-        [&next, &end](auto& item, auto& selector) {
+        [&next, &end](is_json_item auto& item, is_selector auto& selector) {
             return apply_selector(selector, item, next, end);
         },
         next_s.inner);

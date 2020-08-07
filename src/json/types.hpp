@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+#include "../utils.hpp"
+
 namespace json {
 
 class JsonNode;
@@ -195,6 +197,21 @@ public:
 };
 
 /**
+ * Constraint on the type of a json item.
+ *
+ * All json item types should be listed here.
+ */
+// clang-format off
+template<typename J>
+concept is_json_item =
+    basically_same_as<J, JsonString> ||
+    basically_same_as<J, JsonNumber> ||
+    basically_same_as<J, JsonObject> ||
+    basically_same_as<J, JsonArray> ||
+    basically_same_as<J, JsonLiteral>;
+// clang-format on
+
+/**
  * Unifying wrapper for all json item kinds.
  *
  * This avoids having to allocate each constructor separately on the heap.
@@ -205,19 +222,19 @@ class JsonNode {
 
 public:
     JsonNode() = default;
-    JsonNode(JsonString inner) : inner(inner) {}
-    JsonNode(JsonNumber inner) : inner(inner) {}
-    JsonNode(JsonObject inner) : inner(inner) {}
-    JsonNode(JsonArray inner) : inner(inner) {}
-    JsonNode(JsonLiteral inner) : inner(inner) {}
+
+    template <is_json_item J> JsonNode(J inner) : inner(inner) {}
 
     const char* name() const {
-        return boost::apply_visitor([](auto& x) { return x.name(); }, inner);
+        return boost::apply_visitor(
+            [](is_json_item auto& x) { return x.name(); }, inner);
     }
 
     bool operator==(const JsonNode&) const = default;
 
-    template <typename T> const T& as() const { return boost::get<T>(inner); }
+    template <is_json_item J> const J& as() const {
+        return boost::get<J>(inner);
+    }
 
     /**
      * Allow visitation lambdas.
@@ -232,7 +249,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& o, const JsonNode& self) {
-        auto print = [&o](auto& operand) { o << operand; };
+        auto print = [&o](is_json_item auto& operand) { o << operand; };
         boost::apply_visitor(print, self.inner);
         return o;
     }
