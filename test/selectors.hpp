@@ -77,12 +77,12 @@ TEST_CASE("index selector parses", "[selectors]") {
     {
         std::string s = R"#([1])#";
         auto selector = single_selector<IndexSelector>(s);
-        REQUIRE(selector.index == 1);
+        REQUIRE(selector.get() == 1);
     }
     {
         std::string s = R"#([500])#";
         auto selector = single_selector<IndexSelector>(s);
-        REQUIRE(selector.index == 500);
+        REQUIRE(selector.get() == 500);
     }
 }
 

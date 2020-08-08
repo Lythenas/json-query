@@ -71,9 +71,13 @@ public:
  * ```
  */
 class KeySelector {
+    std::string key;
+
 public:
     KeySelector() = default;
     KeySelector(std::string key) : key(std::move(key)) {}
+    KeySelector(const KeySelector&) = default;
+    KeySelector& operator=(const KeySelector&) = default;
 
     static const char* name() { return "Key"; }
 
@@ -82,9 +86,6 @@ public:
     friend std::ostream& operator<<(std::ostream& o, const KeySelector& self) {
         return o << "KeySelector(" << self.key << ")";
     }
-
-private:
-    std::string key;
 };
 
 /**
@@ -107,11 +108,13 @@ private:
  * ```
  */
 class IndexSelector {
-public:
     int index;
 
+public:
     IndexSelector() = default;
     IndexSelector(int index) : index(index) {}
+    IndexSelector(const IndexSelector&) = default;
+    IndexSelector& operator=(const IndexSelector&) = default;
 
     static const char* name() { return "Index"; }
 
@@ -147,21 +150,21 @@ public:
  * ```
  */
 class RangeSelector {
+    // uses boost::optional instead of std::optional because that is easier to
+    // use with the parser
+    boost::optional<int> start;
+    boost::optional<int> end;
+
 public:
     RangeSelector() = default;
-    RangeSelector(boost::optional<RangeSelector> r) {
-        if (r) {
-            start = r->start;
-            end = r->end;
-        }
-    }
     RangeSelector(boost::optional<int> start, boost::optional<int> end)
         : start(start), end(end) {}
+    RangeSelector(const RangeSelector&) = default;
+    RangeSelector& operator=(const RangeSelector&) = default;
 
     static const char* name() { return "Range"; }
 
     const boost::optional<int>& get_start() const { return start; }
-
     const boost::optional<int>& get_end() const { return end; }
 
     friend std::ostream& operator<<(std::ostream& o,
@@ -174,10 +177,6 @@ public:
                                           : "")
                  << ")";
     }
-
-private:
-    boost::optional<int> start;
-    boost::optional<int> end;
 };
 
 /**
@@ -207,9 +206,13 @@ private:
  * ```
  */
 class PropertySelector {
+    std::vector<std::string> keys;
+
 public:
     PropertySelector() = default;
     PropertySelector(std::vector<std::string> keys) : keys(std::move(keys)) {}
+    PropertySelector(const PropertySelector&) = default;
+    PropertySelector& operator=(const PropertySelector&) = default;
 
     static const char* name() { return "Property"; }
 
@@ -223,9 +226,6 @@ public:
         }
         return o << ")";
     }
-
-private:
-    std::vector<std::string> keys;
 };
 
 /**
@@ -256,9 +256,15 @@ private:
  * ```
  */
 class FilterSelector {
+    // Having a nested KeySelector makes it easier to parse and use in
+    // apply_selector.
+    KeySelector filter;
+
 public:
     FilterSelector() = default;
     FilterSelector(const KeySelector& filter) : filter(filter) {}
+    FilterSelector(const FilterSelector&) = default;
+    FilterSelector& operator=(const FilterSelector&) = default;
 
     static const char* name() { return "Filter"; }
 
@@ -268,9 +274,6 @@ public:
                                     const FilterSelector& self) {
         return o << "FilterSelector(" << self.filter << ")";
     }
-
-private:
-    KeySelector filter;
 };
 
 /**
@@ -286,8 +289,6 @@ private:
  */
 class TruncateSelector {
 public:
-    TruncateSelector() = default;
-
     static const char* name() { return "Truncate"; }
 
     friend std::ostream& operator<<(std::ostream& o,
@@ -317,8 +318,6 @@ public:
  */
 class FlattenSelector {
 public:
-    FlattenSelector() = default;
-
     static const char* name() { return "Flatten"; }
 
     friend std::ostream& operator<<(std::ostream& o,
