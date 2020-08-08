@@ -48,7 +48,7 @@ make FUZZ=1 jsonquery_fuzz
 
 ## Dependencies
 
-- boost (tests with version 1.72)
+- boost (tested with version 1.72)
 
 For testing:
 
