@@ -10,6 +10,8 @@ See [jql](https://github.com/yamafaktory/jql#%EF%B8%8F-usage) for examples.
 
 ## Building
 
+The sources are built with C++20 using the `Makefile`.
+
 ```
 make
 ```
@@ -23,20 +25,29 @@ make jsonquery
 
 ## Tests
 
-```
+```sh
 make check
 ```
 
 or
 
-```
+```sh
 make jsonquery_test
 ./jsonquery_test
 ```
 
-There is also a fuzzing test
+To execute tests with coverage use:
 
+```sh
+./coverage.sh
 ```
+
+This will generate a coverage report using the clang/llvm tools in
+`test-coverage/index.html`.
+
+There is also a fuzzing test:
+
+```sh
 make clean
 make FUZZ=1 jsonquery_fuzz
 ./jsonquery_fuzz
