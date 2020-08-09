@@ -92,13 +92,22 @@ int main(int argc, char* argv[]) {
         std::cout << output;
     } catch (const errors::InputFileException& e) {
         std::cerr << e.what() << std::endl;
+        return 1;
     } catch (const selectors::FailedToParseSelectorException& e) {
         std::cerr << "Failed to parse selector: " << e.what() << std::endl;
+        return 1;
     } catch (const selectors::SyntaxError& e) {
         e.pretty_print(std::cerr, args.selector);
+        return 1;
     } catch (const json::SyntaxError& e) {
         e.pretty_print(std::cerr);
+        return 1;
     } catch (const cli::CliException&) {
+        return 1;
+    } catch (const selectors::ApplySelectorError& e) {
+        std::cerr << "Failed to apply selector. "
+            << "Maybe selectors and json structure don't match?\n\n"
+            << "\033[31mError:\033[0m " << e.what() << "\n";
         return 1;
     }
 

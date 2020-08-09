@@ -16,6 +16,15 @@ namespace selectors {
 using namespace json;
 namespace ranges = std::ranges;
 
+class ApplySelectorError : public std::exception {
+    std::string message;
+
+public:
+    ApplySelectorError(const std::string& message) : message(message) {}
+
+    const char* what() const noexcept override { return message.c_str(); }
+};
+
 class SelectorNode;
 
 // Used to detect wrong parsing because the default constructor of the
@@ -527,7 +536,12 @@ JsonNode apply_selector(const IndexSelector& s, const JsonArray& arr, I next,
 template <sel_iter I>
 JsonNode apply_selector(const KeySelector& s, const JsonObject& obj, I next,
                         I end) {
-    return apply_selector(obj.find(s.get()), next, end);
+    try {
+        return apply_selector(obj.find(s.get()), next, end);
+    } catch (std::out_of_range&) {
+        throw ApplySelectorError("Key \"" + s.get() +
+                                 "\" was not found in json object");
+    }
 }
 
 template <sel_iter I>
@@ -539,7 +553,7 @@ JsonNode apply_selector(const AnyRootSelector& /*unused*/,
 template <sel_iter I>
 JsonNode apply_selector(const is_selector auto& s, const is_json_item auto& j,
                         I /*unused*/, I /*unused*/) {
-    throw std::runtime_error(
+    throw ApplySelectorError(
         std::string("selector and json object don't match: ") + s.name() +
         ", " + j.name());
 }
