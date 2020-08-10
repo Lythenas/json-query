@@ -1,16 +1,19 @@
 {
-  "laptops": [
-    {
-      "laptop": {
-        "brand": "Apple",
-        "options": ["a", "b", "c"]
-      }
-    },
-    {
-      "laptop": {
-        "brand": "Asus",
-        "options": ["d", "e", "f"]
-      }
-    }
-  ]
+    "laptops": [
+        {
+            "id": 1,
+            "model": "Thinkpad T420",
+            "brand": "Lenovo"
+        },
+        {
+            "id": 2,
+            "model": "Thinkpad T420p",
+            "brand": "Lenovo"
+        },
+        {
+            "id": 3,
+            "model": "MacBook Air",
+            "brand": "Apple"
+        }
+    ]
 }

@@ -486,7 +486,8 @@ JsonNode apply_selector(const FilterSelector& s, const JsonArray& arr, I next,
                     result.push_back(apply_selector(key, obj, next, end));
                 },
                 [](const is_json_item auto& /*unused*/) {}});
-        } catch (const std::out_of_range&) {
+        } catch (const ApplySelectorError&) {
+            // note: this means th key was not found and thus we ignore the item
         }
     }
 
@@ -580,6 +581,8 @@ JsonNode apply_selector(const JsonNode& json, I next, I end) {
  * in sequential order.
  */
 class RootSelector {
+    std::vector<SelectorNode> inner;
+
 public:
     RootSelector() = default;
     RootSelector(std::vector<SelectorNode> inner) : inner(std::move(inner)) {}
@@ -597,9 +600,6 @@ public:
         }
         return o << "}";
     }
-
-private:
-    std::vector<SelectorNode> inner;
 };
 
 /**
@@ -613,6 +613,8 @@ private:
  * is as a noop)
  */
 class Selectors {
+    std::vector<RootSelector> selectors;
+
 public:
     Selectors() = default;
     Selectors(std::vector<RootSelector> selectors)
@@ -646,9 +648,6 @@ public:
         }
         return o << ']';
     }
-
-private:
-    std::vector<RootSelector> selectors;
 };
 
 } // namespace selectors
