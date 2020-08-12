@@ -96,6 +96,9 @@ int main(int argc, char* argv[]) {
     } catch (const selectors::FailedToParseSelectorException& e) {
         std::cerr << "Failed to parse selector: " << e.what() << std::endl;
         return 1;
+    } catch (const json::FailedToParseJsonException& e) {
+        std::cerr << "Failed to parse json: " << e.what() << std::endl;
+        return 1;
     } catch (const selectors::SyntaxError& e) {
         e.pretty_print(std::cerr, args.selector);
         return 1;

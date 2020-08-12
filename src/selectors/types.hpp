@@ -419,6 +419,11 @@ public:
     InnerVariant inner;
 };
 
+template <typename T>
+void extend_vec_with(std::vector<T>& vec, const std::vector<T>& extension) {
+    vec.insert(vec.end(), extension.begin(), extension.end());
+}
+
 // these template functions make it a little easier to find and extend what
 // selector handles what json item
 //
@@ -431,13 +436,11 @@ JsonNode apply_selector(const FlattenSelector& /*unused*/, const JsonArray& arr,
     std::vector<JsonNode> flattened_array;
 
     for (const JsonNode& item : arr.get()) {
-        // calculate sub result and flatten if result is array
+        // calculate sub result and flatten if result is an array
         const JsonNode result = apply_selector(item, next, end);
         result.apply_visitor(
             overloaded{[&flattened_array](const JsonArray& nested_array) {
-                           std::copy(nested_array.get().cbegin(),
-                                     nested_array.get().cend(),
-                                     std::back_inserter(flattened_array));
+                           extend_vec_with(flattened_array, nested_array.get());
                        },
                        [](const is_json_item auto& /*unused*/) {}});
     }
@@ -498,13 +501,14 @@ template <sel_iter I>
 JsonNode apply_selector(const PropertySelector& s, const JsonObject& obj,
                         I next, I end) {
     const std::vector<std::string>& keys = s.get_keys();
+    // initialize with correct size so we don't need back_inserter
     std::vector<std::pair<std::string, JsonNode>> result{keys.size()};
 
-    std::transform(keys.cbegin(), keys.cend(), result.begin(),
-                   [&obj, next, end](const std::string& key) {
-                       return std::make_pair(
-                           key, apply_selector(obj.find(key), next, end));
-                   });
+    std::ranges::transform(
+        keys, result.begin(), [&obj, next, end](const std::string& key) {
+            return std::make_pair(key,
+                                  apply_selector(obj.find(key), next, end));
+        });
 
     return {JsonObject(result)};
 }
@@ -513,11 +517,15 @@ template <sel_iter I>
 JsonNode apply_selector(const RangeSelector& s, const JsonArray& array, I next,
                         I end) {
     const std::vector<JsonNode>& arr = array.get();
-    auto begin_it = arr.cbegin() + s.get_start().get_value_or(0);
-    auto end_it = arr.cbegin() + s.get_end().get_value_or(arr.size() - 1) + 1;
 
-    const unsigned long num_items = s.get_end().get_value_or(arr.size() - 1) +
-                                    1 - s.get_start().get_value_or(0);
+    // range start and end or default values
+    const auto range_start = s.get_start().get_value_or(0);
+    const auto range_end = s.get_end().get_value_or(arr.size() - 1) + 1;
+
+    auto begin_it = arr.cbegin() + range_start;
+    auto end_it = arr.cbegin() + range_end;
+
+    const unsigned long num_items = range_end - range_start;
 
     std::vector<JsonNode> result{num_items};
     std::transform(begin_it, end_it, result.begin(),
@@ -559,6 +567,7 @@ JsonNode apply_selector(const is_selector auto& s, const is_json_item auto& j,
         ", " + j.name());
 }
 
+// entry point for applying the next selector
 template <sel_iter I>
 JsonNode apply_selector(const JsonNode& json, I next, I end) {
     if (next == end) {
@@ -623,6 +632,13 @@ public:
     const std::vector<RootSelector>& get() const { return selectors; }
     std::vector<RootSelector>& get() { return selectors; }
 
+
+    /**
+     * Apply all the selectors to the given Json.
+     *
+     * Throws ApplySelectorError if one of the selectors can't be applied to
+     * the json.
+     */
     Json apply(const Json& json) const {
         const JsonNode& node = json.get();
         Json result{};

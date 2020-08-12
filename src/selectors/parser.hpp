@@ -26,13 +26,12 @@ class SyntaxError : public errors::SyntaxError {
 };
 
 class FailedToParseSelectorException : public std::exception {
+    const char* reason;
+
 public:
     FailedToParseSelectorException(const char* reason) : reason(reason) {}
 
     virtual const char* what() const noexcept override { return reason; }
-
-private:
-    const char* reason;
 };
 
 template <typename Iterator>
@@ -78,19 +77,17 @@ struct selectors_grammar
         property = ('{' > (quoted_string % ',') >
                     '}')[_val = construct<PropertySelector>(_1)];
 
-        // no backtracking between index and range parsing
+        // parsed together for better performance and to prevent backtracking
+        // NOTE: it's only an index if we got an int and no colon if the second
+        // int was matched the colon otherwise it's a (possibly empty) range
+        // was also matched or there is a parse error
         index_or_range =
             qi::lit('[') >
-            (-qi::int_ > -qi::char_(':') > -qi::int_)[
-                // it's only an index if we got an int and no colon
-                if_(_1 && !_2)[_val = construct<SelectorNode>(
-                                   construct<IndexSelector>(*_1))
-                               // otherwise it's a (possibly empty) range
-                               // NOTE: if the second int was matched the colon
-                               // was also matched or there is a parse error
-        ]
-                    .else_[_val = construct<SelectorNode>(
-                               construct<RangeSelector>(_1, _3))]] >
+            (-qi::int_ > -qi::char_(':') >
+             -qi::int_)[if_(_1 && !_2)[_val = construct<SelectorNode>(
+                                           construct<IndexSelector>(*_1))]
+                            .else_[_val = construct<SelectorNode>(
+                                       construct<RangeSelector>(_1, _3))]] >
             qi::lit(']');
 
         any_root = qi::lit('.')[_val = construct<AnyRootSelector>()];
@@ -165,27 +162,5 @@ Selectors parse_selectors(const std::string& s) {
 }
 
 } // namespace selectors
-
-// SELECTORS:
-//
-// root .
-// key "something"
-// child "something"."else"
-// index [1]
-// multi-index [1,5]
-// range [1:4]
-//   - can be reversed [4:1]
-//   - and used multiple times [4:1][3:0]
-//   - start or end can be omitted [1:] [:5]
-//   - ommit both to select the whole array (is a bit useless)
-// property {"a", "c"}
-// multi-selection "one"[2:0],"two","three"
-// filter "something"|"else" (will filter an array "something": [...])
-// truncate !
-//   - stops processing and returns a simple value (for objects and array an
-//   empty object or array)
-//
-// This isn't really a selector but transforms the output (NOT IMPLEMENTED):
-// flatten arrays .. (prefix instead of postfix)
 
 #endif

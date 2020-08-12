@@ -24,6 +24,15 @@ namespace spirit = boost::spirit;
 namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 
+class FailedToParseJsonException : public std::exception {
+    const char* reason;
+
+public:
+    FailedToParseJsonException(const char* reason) : reason(reason) {}
+
+    virtual const char* what() const noexcept override { return reason; }
+};
+
 class InnerSyntaxError : public std::exception {
     typedef boost::spirit::line_pos_iterator<std::string::const_iterator>
         Iterator;
@@ -46,6 +55,13 @@ public:
 class SyntaxError : public std::exception {
     typedef boost::spirit::line_pos_iterator<std::string::const_iterator>
         Iterator;
+
+    std::size_t line_num;
+    // 0 indexed column
+    std::size_t col_num;
+    std::string line;
+    std::string expected;
+    std::string what_;
 
 public:
     SyntaxError(Iterator begin, Iterator current, Iterator end,
@@ -78,14 +94,6 @@ public:
           << std::string(col_num, ' ') << "^ expected \033[32m" << expected
           << "\033[0m\n";
     }
-
-private:
-    std::size_t line_num;
-    // 0 indexed column
-    std::size_t col_num;
-    std::string line;
-    std::string expected;
-    std::string what_;
 };
 
 template <typename Iterator>
@@ -162,6 +170,11 @@ struct json_grammar : qi::grammar<Iterator, Json(), ascii::space_type> {
     qi::rule<Iterator, std::string()> escaped;
 };
 
+/**
+ * Parses a string into a json object or throw an exception.
+ *
+ * Throws either FailedToParseJsonException or SyntaxError.
+ */
 Json parse_json(const std::string& s) {
     typedef boost::spirit::line_pos_iterator<std::string::const_iterator>
         Iterator;
@@ -174,7 +187,7 @@ Json parse_json(const std::string& s) {
                                    ascii::space, json);
 
         if (!ok || begin != end) {
-            throw std::runtime_error("json parser failed");
+            throw FailedToParseJsonException("parser failed");
         }
     } catch (InnerSyntaxError& e) {
         std::string expected;
