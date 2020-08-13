@@ -6,6 +6,7 @@
 #include <boost/variant/detail/apply_visitor_binary.hpp>
 #include <boost/variant/static_visitor.hpp>
 #include <iostream>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -28,6 +29,8 @@ std::ostream& operator<<(std::ostream& o, const JsonNode& self);
  * ```
  */
 class JsonString {
+    // TODO is this enough to represent unicode
+    // (theoretically yes because we don't manipulate the string)
     std::string str;
 
 public:
@@ -89,22 +92,21 @@ public:
  *   "key2": 42
  * }
  * ```
+ *
+ * NOTE: If there are duplicate keys we only keep the first one.
  */
 class JsonObject {
-    std::vector<std::pair<std::string, JsonNode>> members;
+    // store members in a map for faster lookup
+    std::map<std::string, JsonNode> members;
+    // store order to print it in same order it war originally parsed in
+    // NOTE: this could maybe be made more efficient
+    std::vector<std::string> order;
 
 public:
     JsonObject() = default;
-    JsonObject(const std::vector<std::pair<std::string, JsonNode>>& members)
-        : members(members) {}
-    // needed by parser
+    // used by parser
     explicit JsonObject(
-        const boost::optional<std::vector<std::pair<std::string, JsonNode>>>&
-            members) {
-        if (members) {
-            this->members = boost::get(members);
-        }
-    }
+        const std::vector<std::pair<std::string, JsonNode>>& members);
 
     static const char* name() { return "Object"; }
 
@@ -135,13 +137,8 @@ class JsonArray {
 
 public:
     JsonArray() = default;
+    // used by parser
     JsonArray(std::vector<JsonNode> items) : items(std::move(items)) {}
-    // needed by parser
-    explicit JsonArray(boost::optional<std::vector<JsonNode>> items) {
-        if (items) {
-            this->items = boost::get(items);
-        }
-    }
 
     static const char* name() { return "Array"; }
 
@@ -220,9 +217,11 @@ class JsonNode {
     using InnerVariant = boost::variant<JsonString, JsonNumber, JsonObject,
                                         JsonArray, JsonLiteral>;
 
+    InnerVariant inner;
+
 public:
     JsonNode() = default;
-
+    // used by the parser
     template <is_json_item J> JsonNode(J inner) : inner(inner) {}
 
     const char* name() const {
@@ -239,10 +238,6 @@ public:
     /**
      * Allow visitation lambdas.
      */
-    template <typename Visitor>
-    decltype(auto) apply_visitor(Visitor&& visitor) const {
-        return boost::apply_visitor(visitor, inner);
-    }
     template <typename Visitor, typename... Args>
     decltype(auto) apply_visitor(Visitor&& visitor, Args... args) const {
         return boost::apply_visitor(visitor, inner, args...);
@@ -253,34 +248,6 @@ public:
         boost::apply_visitor(print, self.inner);
         return o;
     }
-
-private:
-    InnerVariant inner;
-};
-
-/**
- * Wrapper for an entire json *document*.
- *
- * Simply wraps a JsonNode.
- *
- * TODO not sure if we need this
- */
-class Json {
-public:
-    Json() = default;
-    Json(JsonNode node) : node(std::move(node)) {}
-
-    const JsonNode& get() const { return node; }
-    JsonNode& get() { return node; }
-
-    bool operator==(const Json&) const = default;
-
-    friend std::ostream& operator<<(std::ostream& o, const Json& self) {
-        return o << self.node;
-    }
-
-private:
-    JsonNode node;
 };
 
 // class JsonString
@@ -289,13 +256,25 @@ std::ostream& operator<<(std::ostream& o, const JsonString& self) {
 }
 
 // class JsonObject
-const JsonNode& JsonObject::find(const std::string& key) const {
-    auto predicate = [&key](const auto& val) { return val.first == key; };
-    auto found = std::find_if(members.cbegin(), members.cend(), predicate);
-    if (found == members.cend()) {
-        throw std::out_of_range("json object does not contain key");
+JsonObject::JsonObject(
+    const std::vector<std::pair<std::string, JsonNode>>& members) {
+    // We need to do manual iteration because the string in the pair can't be a
+    // "const std::string". It is not possible to cast the template parameters
+    // like that and the parser can't produce the correct type.  This is a
+    // limitation of the C++ type system.
+    for (auto [key, value] : members) {
+        // ignore duplicate keys
+        if (this->members.contains(key)) {
+            continue;
+        }
+
+        const std::string key_copy{key};
+        this->members[key] = value;
+        this->order.push_back(key_copy);
     }
-    return (*found).second;
+}
+const JsonNode& JsonObject::find(const std::string& key) const {
+    return members.at(key);
 }
 bool JsonObject::operator==(const JsonObject& other) const {
     return this->members == other.members;
@@ -304,8 +283,8 @@ std::ostream& operator<<(std::ostream& o, const JsonObject& self) {
     o << "{";
 
     const char* sep = "";
-    for (const auto& i : self.members) {
-        o << sep << "\"" << i.first << "\":" << i.second;
+    for (const auto& key : self.order) {
+        o << sep << "\"" << key << "\":" << self.members.at(key);
         sep = ",";
     }
 

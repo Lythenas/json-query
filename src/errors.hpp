@@ -15,13 +15,15 @@ public:
     }
 };
 
-class ParseError : public std::exception {};
+class ParseError : public std::exception {
+    protected:
+        std::string what_;
+};
 class SyntaxError : public ParseError {
 public:
     std::size_t error_pos;
     std::string expected;
 
-    std::string what_;
 
     template <typename Iterator>
     SyntaxError(Iterator first, Iterator last, Iterator error_pos,

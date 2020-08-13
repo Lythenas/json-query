@@ -510,7 +510,7 @@ JsonNode apply_selector(const PropertySelector& s, const JsonObject& obj,
                                   apply_selector(obj.find(key), next, end));
         });
 
-    return {JsonObject(result)};
+    return JsonNode(JsonObject(result));
 }
 
 template <sel_iter I>
@@ -632,26 +632,24 @@ public:
     const std::vector<RootSelector>& get() const { return selectors; }
     std::vector<RootSelector>& get() { return selectors; }
 
-
     /**
      * Apply all the selectors to the given Json.
      *
      * Throws ApplySelectorError if one of the selectors can't be applied to
      * the json.
      */
-    Json apply(const Json& json) const {
-        const JsonNode& node = json.get();
-        Json result{};
+    JsonNode apply(const JsonNode& json) const {
+        JsonNode result;
 
         if (selectors.size() == 1) {
-            result.get() = selectors[0].apply(node);
+            result = selectors[0].apply(json);
         } else {
-            auto apply = [&node](const RootSelector& selector) {
-                return selector.apply(node);
+            auto apply = [&json](const RootSelector& selector) {
+                return selector.apply(json);
             };
             std::vector<JsonNode> array;
             ranges::transform(selectors, std::back_inserter(array), apply);
-            result.get() = JsonNode(JsonArray(array));
+            result = JsonNode(JsonArray(array));
         }
 
         return result;

@@ -96,11 +96,15 @@ public:
     }
 };
 
+// Grammar created using https://tools.ietf.org/html/rfc8259 and
+// https://www.json.org/
+// TODO support unicode
 template <typename Iterator>
-struct json_grammar : qi::grammar<Iterator, Json(), ascii::space_type> {
+struct json_grammar : qi::grammar<Iterator, JsonNode(), ascii::space_type> {
     json_grammar() : json_grammar::base_type(root) {
         using boost::phoenix::bind;
         using boost::phoenix::construct;
+        using boost::phoenix::if_;
         using boost::phoenix::new_;
         using boost::phoenix::throw_;
         using boost::phoenix::val;
@@ -119,7 +123,7 @@ struct json_grammar : qi::grammar<Iterator, Json(), ascii::space_type> {
         using qi::rule;
         using qi::uint_;
 
-        root = value[_val = construct<Json>(_1)];
+        root = value[_val = construct<JsonNode>(_1)];
         value = (literal | object | array | number |
                  string)[_val = construct<JsonNode>(_1)];
 
@@ -127,13 +131,16 @@ struct json_grammar : qi::grammar<Iterator, Json(), ascii::space_type> {
                   lit("true")[_val = val(JsonLiteral(JSON_TRUE))] |
                   lit("null")[_val = val(JsonLiteral(JSON_NULL))];
 
-        object =
-            ('{' > -(member % ',') > '}')[_val = construct<JsonObject>(_1)];
+        object = ('{' > -(member % ',') >
+                  '}')[if_(_1)[_val = construct<JsonObject>(*_1)]
+                           .else_[_val = construct<JsonObject>()]];
         member =
             (string_inner > ':' >
              value)[_val = construct<std::pair<std::string, JsonNode>>(_1, _2)];
 
-        array = ('[' > -(value % ',') > ']')[_val = construct<JsonArray>(_1)];
+        array = ('[' > -(value % ',') >
+                 ']')[if_(_1)[_val = construct<JsonArray>(*_1)]
+                          .else_[_val = construct<JsonArray>()]];
 
         number = qi::as_string[lexeme[-char_('-') >> +digit >> -frac >> -exp]]
                               [_val = construct<JsonNumber>(_1)];
@@ -153,7 +160,7 @@ struct json_grammar : qi::grammar<Iterator, Json(), ascii::space_type> {
                        throw_(construct<InnerSyntaxError>(_1, _2, _3, _4)));
     }
 
-    qi::rule<Iterator, Json(), ascii::space_type> root;
+    qi::rule<Iterator, JsonNode(), ascii::space_type> root;
     qi::rule<Iterator, JsonNode(), ascii::space_type> value;
     qi::rule<Iterator, JsonNode()> literal;
     qi::rule<Iterator, JsonNode(), ascii::space_type> object;
@@ -175,13 +182,13 @@ struct json_grammar : qi::grammar<Iterator, Json(), ascii::space_type> {
  *
  * Throws either FailedToParseJsonException or SyntaxError.
  */
-Json parse_json(const std::string& s) {
+JsonNode parse_json(const std::string& s) {
     typedef boost::spirit::line_pos_iterator<std::string::const_iterator>
         Iterator;
     Iterator begin(s.cbegin());
     Iterator end(s.cend());
 
-    Json json;
+    JsonNode json;
     try {
         bool ok = qi::phrase_parse(begin, end, json_grammar<Iterator>(),
                                    ascii::space, json);

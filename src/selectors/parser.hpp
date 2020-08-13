@@ -1,7 +1,6 @@
 #ifndef JSON_QUERY_SELECTOR_PARSER_HPP
 #define JSON_QUERY_SELECTOR_PARSER_HPP
 
-#include <sstream>
 #ifdef TRACE
 #define BOOST_SPIRIT_DEBUG
 #endif
@@ -11,6 +10,7 @@
 #include <boost/spirit/include/qi.hpp>
 #include <iterator>
 #include <memory>
+#include <sstream>
 #include <utility>
 
 #include "../errors.hpp"
@@ -34,6 +34,7 @@ public:
     virtual const char* what() const noexcept override { return reason; }
 };
 
+// TODO support unicode
 template <typename Iterator>
 struct selectors_grammar
     : qi::grammar<Iterator, Selectors(), ascii::space_type> {

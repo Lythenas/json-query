@@ -11,7 +11,7 @@
 #include "selectors/selectors.hpp"
 #include "json/json.hpp"
 
-using json::Json;
+using json::JsonNode;
 using json::parse_json;
 using selectors::parse_selectors;
 using selectors::Selectors;
@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
 
         content = read_input(args.file);
 
-        Json json = parse_json(content);
+        JsonNode json = parse_json(content);
 
         Selectors selectors =
             parse_selectors(args.selector.begin(), args.selector.end());
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
             std::cerr << "Quitting after parse because of --only-parse flag.\n";
             return 0;
         }
-        Json output = selectors.apply(json);
+        JsonNode output = selectors.apply(json);
 
         std::cout << output;
     } catch (const errors::InputFileException& e) {
