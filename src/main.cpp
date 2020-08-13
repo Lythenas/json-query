@@ -7,7 +7,6 @@
 
 #include "cli.hpp"
 #include "errors.hpp"
-#include "selectors/parser.hpp"
 #include "selectors/selectors.hpp"
 #include "json/json.hpp"
 
