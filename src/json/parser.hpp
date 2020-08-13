@@ -181,6 +181,14 @@ struct json_grammar : qi::grammar<Iterator, JsonNode(), ascii::space_type> {
  * Parses a string into a json object or throw an exception.
  *
  * Throws either FailedToParseJsonException or SyntaxError.
+ *
+ * NOTE: There is only a string version provided. For one this allows for
+ * better error messages because we can display the line where the error
+ * occured. This is not possible using e.g. std::ifstream. And also I couldn't
+ * solve the error when trying to use std::ifstream with
+ * boost::spirit::line_pos_iterator<boost::spirit::istream_iterator> as the
+ * Iterator type. It would just crash with an std::__ios_failure exception with
+ * the message "basic_ios::clear: iostream error".
  */
 JsonNode parse_json(const std::string& s) {
     typedef boost::spirit::line_pos_iterator<std::string::const_iterator>

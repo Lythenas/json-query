@@ -450,29 +450,22 @@ JsonNode apply_selector(const FlattenSelector& /*unused*/, const JsonArray& arr,
 
 template <sel_iter I>
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
-                        const JsonObject& /*unused*/, I next, I end) {
-    if (next != end) {
-        // TODO create something better to emit warnings
-        std::cerr << "Truncate is not last selector\n";
-    }
+                        const JsonObject& /*unused*/, I /*unused*/,
+                        I /*unused*/) {
     return JsonNode(JsonObject());
 }
 
 template <sel_iter I>
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
-                        const JsonArray& /*unused*/, I next, I end) {
-    if (next != end) {
-        std::cerr << "Truncate is not last selector\n";
-    }
+                        const JsonArray& /*unused*/, I /*unused*/,
+                        I /*unused*/) {
     return JsonNode(JsonArray());
 }
 
 template <sel_iter I>
 JsonNode apply_selector(const TruncateSelector& /*unused*/,
-                        const is_json_item auto& json, I next, I end) {
-    if (next != end) {
-        std::cerr << "Truncate is not last selector\n";
-    }
+                        const is_json_item auto& json, I /*unused*/,
+                        I /*unused*/) {
     return JsonNode(json);
 }
 
@@ -615,11 +608,8 @@ public:
  * Selectors is a list of independent [RootSelectors](@ref RootSelector).
  *
  * If there is only one root selector the result of applying the selectors is
- * simply the result of that selector.  If there is more than one root
+ * simply the result of that selector. If there is more than one root
  * selectors the result is a list of the results of those selectors.
- *
- * TODO decide if an empty list of root selectors is valid (and probably treat
- * is as a noop)
  */
 class Selectors {
     std::vector<RootSelector> selectors;
@@ -639,20 +629,18 @@ public:
      * the json.
      */
     JsonNode apply(const JsonNode& json) const {
-        JsonNode result;
-
-        if (selectors.size() == 1) {
-            result = selectors[0].apply(json);
+        if (selectors.empty()) {
+            return JsonNode(JsonLiteral(JSON_NULL));
+        } else if (selectors.size() == 1) {
+            return selectors[0].apply(json);
         } else {
             auto apply = [&json](const RootSelector& selector) {
                 return selector.apply(json);
             };
             std::vector<JsonNode> array;
             ranges::transform(selectors, std::back_inserter(array), apply);
-            result = JsonNode(JsonArray(array));
+            return JsonNode(JsonArray(array));
         }
-
-        return result;
     }
 
     friend std::ostream& operator<<(std::ostream& o, const Selectors& self) {
