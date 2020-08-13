@@ -65,7 +65,7 @@ class SyntaxError : public std::exception {
 
 public:
     SyntaxError(Iterator begin, Iterator current, Iterator end,
-                const std::string& what) {
+                const std::string& what): expected(what) {
         line_num = spirit::get_line(current);
         Iterator current_line_start = spirit::get_line_start(begin, current);
 
@@ -76,10 +76,6 @@ public:
             spirit::get_current_line(current_line_start, current, end);
         line = std::string(line_range.begin(), line_range.end());
 
-        std::stringstream ss;
-        ss << what;
-        expected = ss.str();
-
         what_ = "Expected " + expected + " but got \"" + line[col_num] + "\"";
     }
 
@@ -88,11 +84,7 @@ public:
     virtual const char* what() const noexcept override { return what_.c_str(); }
 
     template <typename Out> void pretty_print(Out& o) const {
-        o << "Error in json (line " << line_num << ":" << col_num << "):\n"
-          << line.substr(0, col_num) << "\033[31m" << line[col_num] << "\033[0m"
-          << line.substr(col_num + 1) << "\033[0m\n"
-          << std::string(col_num, ' ') << "^ expected \033[32m" << expected
-          << "\033[0m\n";
+        o << "Error in json (line " << line_num << ":" << col_num << ") expected " + expected + "\n";
     }
 };
 
@@ -209,13 +201,6 @@ JsonNode parse_json(const std::string& s) {
         std::stringstream ss;
         ss << e.info;
         expected = ss.str();
-
-        std::cerr << "Expected: " << expected << "\n"
-                  << "to begin: " << std::string(Iterator(s.cbegin()), begin)
-                  << "\n"
-                  << "to error_pos: "
-                  << std::string(Iterator(s.cbegin()), e.error_pos) << "\n"
-                  << "to end: " << std::string(begin, end) << "\n";
 
         throw SyntaxError(Iterator(s.cbegin()), e.error_pos, end, expected);
     }
