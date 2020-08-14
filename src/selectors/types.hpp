@@ -419,6 +419,9 @@ public:
     InnerVariant inner;
 };
 
+/**
+ * Inserts all items from the second vector into the first one.
+ */
 template <typename T>
 void extend_vec_with(std::vector<T>& vec, const std::vector<T>& extension) {
     vec.insert(vec.end(), extension.begin(), extension.end());
